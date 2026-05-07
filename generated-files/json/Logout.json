@@ -1,0 +1,18 @@
+{
+  "QLabel": [
+    {
+      "name": "icon_logout",
+      "pixmap": "Qss/icons/icons/feather/log-out.png"
+    }
+  ],
+  "QPushButton": [
+    {
+      "name": "save_finish",
+      "icon": "Qss/icons/icons/feather/save.png"
+    },
+    {
+      "name": "close_finish",
+      "icon": "Qss/icons/icons/feather/x-circle.png"
+    }
+  ]
+}

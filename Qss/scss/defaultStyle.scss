@@ -1,0 +1,148 @@
+
+//===================================================//
+// FILE AUTO-GENERATED. PUT YOUR DEFAULT STYLES HERE. 
+// THESE STYLES WILL OVERIDE THE THEME STYLES
+//====================================================//
+
+*{
+    font-family: 'Sans Serif';
+}
+QMainWindow, #centralwidget{
+    background-color: $COLOR_BACKGROUND_1;
+    border-radius: 10px;
+    border: 3px solid $COLOR_BACKGROUND_4;
+}
+QPushButton, QLineEdit, QDateEdit{
+    padding: 8px 10px;
+    border-radius: 10px;
+    min-width: auto;
+    width: auto;
+}
+#leftMenu{
+    & QWidget{
+        background-color: transparent;
+    }
+    background-color: $COLOR_BACKGROUND_1;
+    padding-top: 10px;
+    border-right: 6px solid $COLOR_BACKGROUND_3;
+}
+#centerMenu{
+    border-left: 6px solid $COLOR_ACCENT_1;
+    border-right: 6px solid $COLOR_BACKGROUND_3;
+}
+#leftMenu QPushButton{
+    background-color: transparent;
+    text-align: left;
+    padding: 5px 10px;
+    border-radius: 0;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+#centerMenu{
+    & > QWidget{
+        background-color: transparent;
+        padding: 10px;
+        border-bottom: $BORDER_2;
+        *{
+            background-color: transparent;
+        }
+    }
+    & > QStackedWidget{
+        border-radius: 10px;
+        background-color: transparent;
+        border: none;
+    }
+}
+#header, #footer{
+    background-color: $COLOR_BACKGROUND_1;
+    *{
+        background-color: transparent;
+    }
+}
+#header{
+    border-bottom: $BORDER_2;
+    #window{
+        padding: 0;
+        QPushButton{
+            padding: 4px 2px;
+            border-radius: 0;
+            &:hover{
+                background-color: $COLOR_BACKGROUND_2;
+            }
+        }
+    }
+}
+#footer{
+    border-top: 6px solid $COLOR_BACKGROUND_3;
+}
+#titleTxt{
+    color: $COLOR_ACCENT_1;
+}
+#shot_cnt{
+    color: $COLOR_ACCENT_1;
+}
+#label_11{
+    color: $COLOR_ACCENT_1;
+}
+#mainPages{
+    background-color: $COLOR_BACKGROUND_2;
+    border: none;
+    border-radius: 10px;
+    QStackedWidget{
+        background-color: transparent;
+        border: none;
+    }
+    #dashboardPage, #dataPage, #morePage, #operator_2{
+        background-color: $COLOR_BACKGROUND_2;
+        *, QWidgets{
+            background-color: transparent;
+            border: none;
+        }
+    }
+}
+QProgressBar {
+    height: 1px;
+    border-width: 1px;
+    ::chunk {
+        background-color: $COLOR_ACCENT_4;
+        border-radius: 5px;
+    }
+}
+#search{
+    border-right: $BORDER_2;
+    border-radius: 0;
+    *{
+        border: none;
+        background-color: transparent;
+        border-radius: 2px;
+    }
+    // QLineEdit{
+    //     border-right: $BORDER_2;
+    // }
+    QPushButton{
+        &:hover{
+            background-color: $COLOR_ACCENT_1;
+        }
+    }
+    &:hover{
+        background-color: $COLOR_BACKGROUND_2;
+    }
+}
+QDialog#PM_SYSTEM QWidget#LoginPM{
+    background-color: $COLOR_BACKGROUND_1;
+    border-radius: 10px;
+    border: 3px solid $COLOR_BACKGROUND_4;
+}
+QDialog QPushButton#id_pm{
+    padding: 8px 10px;
+    border-radius: 10px;
+    min-width: 70;
+}
+QDialog QPushButton#pushButton_D{
+    padding: 8px 10px;
+    border-radius: 10px;
+    min-width: 60;
+}
+//===================================================//
+// END //
+//====================================================//

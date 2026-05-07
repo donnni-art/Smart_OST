@@ -1,0 +1,14 @@
+{
+  "QDialog": [
+    {
+      "name": "ScanPOS",
+      "icon": "Qss/icons/icons/feather/book.png"
+    }
+  ],
+  "QPushButton": [
+    {
+      "name": "Refresh_scanPOS",
+      "icon": "Qss/icons/icons/feather/refresh-ccw.png"
+    }
+  ]
+}

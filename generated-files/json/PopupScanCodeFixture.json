@@ -1,0 +1,14 @@
+{
+  "QDialog": [
+    {
+      "name": "ScanCode",
+      "icon": "Qss/icons/icons/feather/tool.png"
+    }
+  ],
+  "QPushButton": [
+    {
+      "name": "Refresh_scanCodeFixture",
+      "icon": "Qss/icons/icons/feather/refresh-cw.png"
+    }
+  ]
+}

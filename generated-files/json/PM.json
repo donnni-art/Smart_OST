@@ -1,0 +1,8 @@
+{
+  "QPushButton": [
+    {
+      "name": "save",
+      "icon": "Qss/icons/icons/feather/save.png"
+    }
+  ]
+}
