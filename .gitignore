@@ -29,6 +29,13 @@ logs/
 # Data folders
 defect_raw_data/
 shot_counts/
+paths_config/
+
+# Generated icons (large binary)
+icons_rc.py
+
+# Debug/test scripts with credentials
+src/test.py
 
 # OS
 .DS_Store
