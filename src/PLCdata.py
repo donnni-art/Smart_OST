@@ -128,32 +128,30 @@ class PLCWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        
-         # โหลด configuration
-        self.plc_config = config_manager.get_plc_config()
-        
-        # ใช้ค่าจาก config
-        self.last_reconnect_attempt = 0
-        self.reconnect_interval = self.plc_config.get('reconnect_interval', 5)
-        self.auto_reconnect_enabled = self.plc_config.get('auto_reconnect', True)
 
-        self.shot_cnt_total = 0
+        self.plc_config   = config_manager.get_plc_config()
+        self.is_mock_mode = bool(config_manager.current_config.get('mock_mode', False))
+
+        self.last_reconnect_attempt   = 0
+        self.reconnect_interval       = self.plc_config.get('reconnect_interval', 5)
+        self.auto_reconnect_enabled   = self.plc_config.get('auto_reconnect', True)
+
+        self.shot_cnt_total       = 0
         self.shot_cnt_total_config = 0
-        self.new_cnt = 0
+        self.new_cnt              = 0
         self.previous_product_name = None
-        self.product_name = ""
-        self.lot_number = ""
-        self.last_data = None
-        self.current_lot_number = None
+        self.product_name         = ""
+        self.lot_number           = ""
+        self.last_data            = None
+        self.current_lot_number   = None
 
         self.serial_connected = False
-        self.serial_port = None
+        self.serial_port      = None
         self._init_plc_values()
         self.force_emit_counter = 0
 
         # === เลือก Worker ตาม connection_mode / mock_mode ===
-        connection_mode   = self.plc_config.get('connection_mode', 'serial')
-        self.is_mock_mode = bool(config_manager.current_config.get('mock_mode', False))
+        connection_mode = self.plc_config.get('connection_mode', 'serial')
         self.worker_thread = QThread()
 
         if self.is_mock_mode:
@@ -184,7 +182,6 @@ class PLCWindow(QMainWindow):
         log.info("PLCWindow initialized")
 
     def _init_plc_values(self):
-        print("Initializing PLC values")
         self.value_dm1923 = 0
         self.value_dm1924 = 0
         self.value_dm1925 = 0
@@ -201,8 +198,12 @@ class PLCWindow(QMainWindow):
         self.value_dm1905 = 0
         self.value_dm1904 = 0
         self.value_dm1900 = 0
-        self.shot_number = 0
-        self.pcs_number = 0
+        self.value_dm1251 = 0
+        self.value_dm5050 = 0
+        self.value_dm5051 = 0
+        self.shot_number  = 0
+        self.pcs_number   = 0
+        self.defect_shot_per_pcs = []
 
     def _init_serial(self):
         try:
@@ -218,8 +219,7 @@ class PLCWindow(QMainWindow):
                 available_ports = []
 
             if not configured_port or configured_port not in available_ports:
-                # Log useful info for troubleshooting
-                print(f"Configured port '{configured_port}' not found in available ports: {available_ports}")
+                log.warning("Configured port '%s' not found in available ports: %s", configured_port, available_ports)
                 # เรียก auto reconnect (จะลองทุกพอร์ตที่มี)
                 if self.plc_config.get('auto_reconnect', True):
                     self.auto_reconnect_serial()
@@ -240,28 +240,23 @@ class PLCWindow(QMainWindow):
             )
             
             if self.serial_port.is_open:
-                print(f"Serial port {self.plc_config.get('port')} opened successfully")
+                log.info("Serial port %s opened successfully", self.plc_config.get('port'))
                 self.serial_connected = True
                 self.shot_pcs_number()
                 self.send_mws_command()
             else:
-                print(f"Failed to open {self.plc_config.get('port')}")
+                log.error("Failed to open %s", self.plc_config.get('port'))
                 self.serial_connected = False
         except Exception as e:
-            # Log the init error and mark as disconnected
-            print(f"Serial init error: {e}")
+            log.error("Serial init error: %s", e)
             self.serial_connected = False
 
-            # Try an automatic reconnect attempt (non-blocking). This helps when the configured
-            # COM port is not present at startup (e.g., device connected later or port changed).
             try:
                 if getattr(self, 'auto_reconnect_enabled', False):
-                    print("Attempting auto-reconnect after serial init failure")
-                    # We don't raise here; auto_reconnect_serial handles its own errors
+                    log.info("Attempting auto-reconnect after serial init failure")
                     self.auto_reconnect_serial()
             except Exception:
-                # Ensure any error here doesn't crash initialization--it has already been logged above
-                print("Auto-reconnect attempt failed during _init_serial")
+                log.warning("Auto-reconnect attempt failed during _init_serial")
 
     def get_parity(self, parity_char):
         """Convert parity character to serial parity constant"""
@@ -285,7 +280,7 @@ class PLCWindow(QMainWindow):
 
     def shot_pcs_number(self):
         if not self.serial_connected or not self.serial_port or not self.serial_port.is_open:
-            print("Serial not connected")
+            log.debug("Serial not connected, skipping shot_pcs_number")
             return
 
         try:
@@ -305,7 +300,7 @@ class PLCWindow(QMainWindow):
 
             # ดึงค่าจริง (ลอง 3 ครั้งถ้ายังไม่ได้ตัวเลข)
             response = ""
-            for i in range(3):
+            for _ in range(3):
                 self.serial_port.write(b"MWR\r")
                 resp = self.serial_port.readline().decode().strip()
                 if resp and all(x.isdigit() for x in resp.split()[:2]):
@@ -314,10 +309,10 @@ class PLCWindow(QMainWindow):
                 time.sleep(0.2)
 
             if not response:
-                print("❌ Failed to read DM5050/DM5051")
+                log.error("Failed to read DM5050/DM5051")
                 return
 
-            print(f"[MWR Response]: {response}")
+            log.debug("[MWR Response]: %s", response)
             values = response.split()
 
             self.value_dm5050 = int(values[0])
@@ -325,16 +320,14 @@ class PLCWindow(QMainWindow):
             self.shot_number = self.value_dm5051
             self.pcs_number = self.value_dm5050
 
-            print(f"SHOT NUMBER: {self.shot_number}")
-            print(f"PCS NUMBER: {self.pcs_number}")
+            log.info("SHOT NUMBER: %d  PCS NUMBER: %d", self.shot_number, self.pcs_number)
 
-            # จบการสื่อสาร
             self.serial_port.write(b"CQ\r")
             cq = self.serial_port.readline().decode().strip()
-            print(f"[END Respond]: {cq}")
+            log.debug("[END Respond]: %s", cq)
 
         except Exception as e:
-            print(f"Error in shot_pcs_number: {e}")
+            log.error("Error in shot_pcs_number: %s", e)
 
     ##############################################################################################
     def send_mws_command(self):
@@ -389,13 +382,13 @@ class PLCWindow(QMainWindow):
             self._send_full_command(full_cmd)
 
         except Exception as e:
-            print(f"Unexpected error in MWS command processing: {e}")
-            raise  # Re-raise if you want calling code to handle it
+            log.error("Unexpected error in MWS command processing: %s", e)
+            raise
 
     def _validate_serial_connection(self):
         """Validate the serial connection is available and open."""
         if not (self.serial_connected and self.serial_port and self.serial_port.is_open):
-            print("Serial port not available or not open")
+            log.warning("Serial port not available or not open")
             return False
         return True
 
@@ -404,10 +397,10 @@ class PLCWindow(QMainWindow):
         try:
             self.serial_port.write(b"CR\r")
             cr_response = self.serial_port.readline().decode().strip()
-            print(f"[START Respond]: {cr_response}")
-            time.sleep(1)  # Consider making this delay configurable
+            log.debug("[START Respond]: %s", cr_response)
+            time.sleep(1)
         except Exception as e:
-            print(f"Failed to send initial CR command: {e}")
+            log.error("Failed to send initial CR command: %s", e)
             raise
 
     def _generate_device_addresses(self, total_shots, addresses_per_shot, start_dm_address):
@@ -424,8 +417,7 @@ class PLCWindow(QMainWindow):
     def _process_requested_shots(self, device_shots_dict, shot_number, pcs_number, max_shots):
         """Process the requested shots and return the command string."""
         if shot_number > max_shots:
-            error_msg = f"Error: shot_number {shot_number} exceeds maximum {max_shots}"
-            print(f"❌ {error_msg}")
+            log.error("shot_number %d exceeds maximum %d", shot_number, max_shots)
             return None
 
         result_list = []
@@ -435,21 +427,18 @@ class PLCWindow(QMainWindow):
             result_list.extend(selected_devices)
 
         result_shot_command = " ".join(result_list)
-        print("✅ Result Shot Command =", result_shot_command)
-        
+        log.debug("Result Shot Command = %s", result_shot_command)
         return result_shot_command
 
     def _send_full_command(self, full_cmd):
         """Send the full command to the serial device."""
         try:
             self.serial_port.write(full_cmd.encode())
-            print("MWS command sent successfully")
-            #print("✅ Full Command =", full_cmd)
-            
+            log.debug("MWS command sent successfully")
             response_command = self.serial_port.readline().decode().strip()
-            print(f"[MWS Respond]: {response_command}")
+            log.debug("[MWS Respond]: %s", response_command)
         except Exception as e:
-            print(f"Failed to send full MWS command: {e}")
+            log.error("Failed to send full MWS command: %s", e)
             raise
 
     def generate_device_shot(self, start_index, count):
@@ -507,7 +496,7 @@ class PLCWindow(QMainWindow):
                 self.last_data = new_data
                 self.force_emit_counter = 0
         except Exception as e:
-            print(f"update_data_from_thread error: {e}")
+            log.error("update_data_from_thread error: %s", e)
 
     def auto_reconnect_serial(self):
         """พยายามเชื่อมต่ออัตโนมัติโดยไม่ต้องถามผู้ใช้"""
@@ -516,19 +505,18 @@ class PLCWindow(QMainWindow):
             available_ports = [port.device for port in serial.tools.list_ports.comports()]
             
             if not available_ports:
-                print("No COM ports available for auto-reconnect")
+                log.warning("No COM ports available for auto-reconnect")
                 return
-            
-            # ลองเชื่อมต่อกับทุกพอร์ตที่หาได้
+
             for port_name in available_ports:
                 if self.try_connect_to_port(port_name):
-                    print(f"✅ Auto-reconnected to {port_name}")
+                    log.info("Auto-reconnected to %s", port_name)
                     return
-            
-            print("Auto-reconnect failed for all available ports")
-            
+
+            log.warning("Auto-reconnect failed for all available ports")
+
         except Exception as e:
-            print(f"Auto-reconnect error: {e}")
+            log.error("Auto-reconnect error: %s", e)
 
     def try_connect_to_port(self, port_name):
         """พยายามเชื่อมต่อกับพอร์ตที่กำหนด"""
@@ -572,19 +560,19 @@ class PLCWindow(QMainWindow):
             return ""
 
         try:
-            for attempt in range(3):
+            for _ in range(3):
                 self.serial_port.write(b"MWR\r")
                 response = self.serial_port.readline().decode(errors='ignore').strip()
                 if response:
                     return response
             
             # ถ้าอ่านข้อมูลไม่ได้ 3 ครั้ง ให้ทำเครื่องหมายว่าการเชื่อมต่อหลุด
-            print("PLC response empty after retries, marking as disconnected")
+            log.warning("PLC response empty after retries, marking as disconnected")
             self.serial_connected = False
             return ""
-            
+
         except Exception:
-            print("Error reading PLC, marking as disconnected")
+            log.warning("Error reading PLC, marking as disconnected")
             self.serial_connected = False
             return ""
 
@@ -597,16 +585,15 @@ class PLCWindow(QMainWindow):
                 # แสดง popup ให้ผู้ใช้เลือก (เหมือนเดิม)
                 selected_port = self.select_com_port_popup()
                 if not selected_port:
-                    print("User cancelled COM port selection")
+                    log.info("User cancelled COM port selection")
                     return
             else:
-                # โหมดอัตโนมัติ - เลือกพอร์ตแรกที่หาได้
                 available_ports = [port.device for port in serial.tools.list_ports.comports()]
                 if available_ports:
                     selected_port = available_ports[0]
-                    print(f"Auto-selecting first available port: {selected_port}")
+                    log.info("Auto-selecting first available port: %s", selected_port)
                 else:
-                    print("No COM ports available for auto-reconnect")
+                    log.warning("No COM ports available for auto-reconnect")
                     return
             
             # เชื่อมต่อกับพอร์ตที่เลือก (code เดิม)
@@ -623,7 +610,7 @@ class PLCWindow(QMainWindow):
             )
 
             if self.serial_port.is_open:
-                print(f"✅ Connected to {selected_port} successfully")
+                log.info("Connected to %s successfully", selected_port)
                 if show_popup:
                     QMessageBox.information(self, "Connection Successful", f"Connected to {selected_port} successfully")
                 self.serial_connected = True
@@ -633,7 +620,7 @@ class PLCWindow(QMainWindow):
                 self.serial_connected = False
                 
         except Exception as e:
-            print(f"❌ Reconnect failed: {e}")
+            log.error("Reconnect failed: %s", e)
             if show_popup:
                 QMessageBox.critical(self, "Connection Error", f"Unable to connect to the port\n{e}")
             self.serial_connected = False
@@ -642,7 +629,7 @@ class PLCWindow(QMainWindow):
         """ตรวจสอบว่าการเชื่อมต่อ PLC พร้อมก่อนเริ่มใช้งาน"""
         # ถ้ายังไม่เชื่อมต่อ → เปิด popup ให้เลือก COM
         if not self.serial_connected or not self.serial_port or not self.serial_port.is_open:
-            print("PLC not connected, opening COM port selection popup...")
+            log.info("PLC not connected, opening COM port selection popup...")
             self.reconnect_serial()
 
         # หลังจาก popup แล้ว ยังเชื่อมต่อไม่ได้ → แจ้งเตือนและ return False
@@ -650,7 +637,7 @@ class PLCWindow(QMainWindow):
             QMessageBox.critical(self, "Connection Error", "Unable to connect to PLC\nPlease check COM Port settings")
             return False
 
-        print("✅ PLC Connected Successfully")
+        log.info("PLC Connected Successfully")
         return True
 
     
@@ -783,7 +770,7 @@ class PLCWindow(QMainWindow):
             return self.defect_shot_per_pcs
 
         except Exception:
-            print("Failed to parse PLC values")
+            log.error("Failed to parse PLC values")
 
     ### Product name 
     def _parse_product_name(self, raw_values):

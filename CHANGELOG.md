@@ -2,6 +2,22 @@
 
 ---
 
+## [2026-05-12] — Code Quality Fixes (print→log, lazy import, unused vars)
+
+### ไฟล์ที่แก้ไข
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| `src/PLCdata.py` | แทน `print()` ทั้งหมด (~20 จุด) ด้วย `log.info/warning/error/debug` |
+| `src/PLCdata.py` | เปลี่ยน loop var `i`, `attempt` → `_` (unused var hint) |
+| `main.py` | ย้าย `import SimulatorControlPanel` เป็น lazy import ใน `_open_simulator_control()` |
+
+### Before → After
+- `print(f"Serial port {port} opened")` → `log.info("Serial port %s opened", port)`
+- `print("❌ Failed to read DM5050/DM5051")` → `log.error("Failed to read DM5050/DM5051")`
+- `from src.simulator_control import SimulatorControlPanel` (module-level) → lazy import inside method
+
+---
+
 ## [2026-05-12] — Simulator System (mock_mode)
 
 ### ไฟล์ที่แก้ไข / สร้างใหม่

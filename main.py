@@ -62,7 +62,6 @@ from src.system_manager import SystemManager
 from src.Functions import GuiFunctions
 from src.config_dialog import ConfigDialog
 from src.flow_monitor import FlowMonitorDialog
-from src.simulator_control import SimulatorControlPanel
 
 log = get_logger("main")
 
@@ -262,6 +261,7 @@ class MainWindow(QMainWindow):
             self._simulator_dialog.raise_()
             self._simulator_dialog.activateWindow()
             return
+        from src.simulator_control import SimulatorControlPanel
         self._simulator_dialog = SimulatorControlPanel(self, parent=self)
         self._simulator_dialog.finished.connect(self._on_simulator_closed)
         self._simulator_dialog.show()
