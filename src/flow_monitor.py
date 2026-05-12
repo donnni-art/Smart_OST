@@ -3,15 +3,6 @@ flow_monitor.py
 ===============
 Real-time monitor ของ data-flow nodes ทั้งหมดใน Smart OST
 
-แสดงสถานะ:
-  - PLC Worker       : serial connected / TCP status + last data timestamp
-  - ShotCounter      : shot count, product, lot
-  - GraphUpdater     : last graph update timing
-  - HeatMapDefect    : last shot/defect state
-  - DataSync         : last sync timing
-  - ProductionCalc   : sheets/hr, pcs/hr, stale/offline detection
-  - DB Read/Write    : MySQL connection alive check
-
 การใช้งาน (เปิดจาก MainWindow):
   from src.flow_monitor import FlowMonitorDialog
   dlg = FlowMonitorDialog(main_window, parent=main_window)
@@ -28,16 +19,23 @@ from PySide6.QtWidgets import (
 )
 
 from src.app_logger import get_logger
+from src.database_manager import database_manager
 
 log = get_logger("monitor")
 
-_DOT = "●"
+_DOT  = "●"
+_OK   = "#27ae60"
+_WARN = "#f39c12"
+_ERR  = "#e74c3c"
+_STALE = "#3498db"
+_OFF  = "#888888"
+
+_TCP_COLOR = {"connected": _OK, "reconnecting": _WARN}
 
 
 class FlowMonitorDialog(QDialog):
     """หน้าต่าง real-time monitor ของ data-flow nodes ทั้งหมด"""
 
-    # node rows: (key, display_label)
     _NODES = [
         ("plc",      "PLC Worker"),
         ("shot",     "ShotCounter"),
@@ -53,14 +51,21 @@ class FlowMonitorDialog(QDialog):
         super().__init__(parent)
         self._main = main_window
 
-        # activity timestamps — updated from signal hooks
-        self._ts_plc_data   = None
-        self._ts_graph      = None
-        self._ts_datasync   = None
-        self._ts_prodcalc   = None
+        self._ts_plc_data  = None
+        self._ts_prodcalc  = None
+        self._tcp_status   = "unknown"
 
-        # TCP status string from signal
-        self._tcp_status = "unknown"
+        # cached once at connect-time — stable config values
+        self._stale_threshold   = 120
+        self._offline_threshold = 600
+
+        self._prev_state: dict = {}
+        self._signals_connected = False
+
+        # fonts cached to avoid allocation in hot path
+        self._font_status = QFont("Arial", 10)
+        self._font_detail = QFont("Arial", 9)
+        self._color_detail = QColor("#444")
 
         self.setWindowTitle("Smart OST — Flow Monitor")
         self.setMinimumWidth(680)
@@ -134,6 +139,8 @@ class FlowMonitorDialog(QDialog):
     # ── signal hooks ──────────────────────────────────────────────────────────
 
     def _connect_signals(self):
+        if self._signals_connected:
+            return
         mw = self._main
         if hasattr(mw, 'plc_window') and mw.plc_window:
             mw.plc_window.data_updated.connect(self._on_plc_data)
@@ -142,34 +149,31 @@ class FlowMonitorDialog(QDialog):
             except Exception:
                 pass
         if hasattr(mw, 'production_calculator') and mw.production_calculator:
-            mw.production_calculator.production_rates_updated.connect(self._on_prodcalc)
+            pc = mw.production_calculator
+            pc.production_rates_updated.connect(self._on_prodcalc)
+            self._stale_threshold   = getattr(pc, 'stale_threshold',   120)
+            self._offline_threshold = getattr(pc, 'offline_threshold', 600)
+        self._signals_connected = True
 
     def _disconnect_signals(self):
-        mw = self._main
-        for attr, slot in [('plc_window', self._on_plc_data)]:
-            obj = getattr(mw, attr, None)
-            if obj:
-                try:
-                    obj.data_updated.disconnect(slot)
-                except Exception:
-                    pass
-                try:
-                    obj.tcp_status_changed.disconnect(self._on_tcp_status)
-                except Exception:
-                    pass
+        if not self._signals_connected:
+            return
+        mw  = self._main
+        plc = getattr(mw, 'plc_window', None)
+        if plc:
+            try: plc.data_updated.disconnect(self._on_plc_data)
+            except Exception: pass
+            try: plc.tcp_status_changed.disconnect(self._on_tcp_status)
+            except Exception: pass
         pc = getattr(mw, 'production_calculator', None)
         if pc:
-            try:
-                pc.production_rates_updated.disconnect(self._on_prodcalc)
-            except Exception:
-                pass
+            try: pc.production_rates_updated.disconnect(self._on_prodcalc)
+            except Exception: pass
+        self._signals_connected = False
 
     @Slot(dict)
     def _on_plc_data(self, _data):
-        now = time.time()
-        self._ts_plc_data  = now
-        self._ts_datasync  = now   # DataSync subscribes to same signal
-        self._ts_graph     = now   # GraphUpdater subscribes to same signal
+        self._ts_plc_data = time.time()
 
     @Slot(str)
     def _on_tcp_status(self, status: str):
@@ -182,32 +186,56 @@ class FlowMonitorDialog(QDialog):
     # ── helpers ───────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _ago(ts) -> str:
+    def _ago(ts, now: float) -> str:
         if ts is None:
             return "ยังไม่มีข้อมูล"
-        diff = time.time() - ts
+        diff = now - ts
         if diff < 2:
             return "just now"
         return f"{diff:.0f}s ago"
 
-    def _set_row(self, row: int, color: str, status: str, detail: str):
-        dot_item = QTableWidgetItem(f"{_DOT}  {status}")
-        dot_item.setForeground(QColor(color))
-        dot_item.setFont(QFont("Arial", 10))
-        self._table.setItem(row, 1, dot_item)
+    def _staleness_status(self, ldr, now: float):
+        if ldr is None:
+            return _WARN, "Waiting"
+        stale = now - ldr
+        if stale > self._offline_threshold:
+            return _OFF, "Offline"
+        if stale > self._stale_threshold:
+            return _STALE, "Stale"
+        return _OK, "Active"
 
-        det_item = QTableWidgetItem(detail)
-        det_item.setFont(QFont("Arial", 9))
-        det_item.setForeground(QColor("#444"))
-        self._table.setItem(row, 2, det_item)
+    def _set_row(self, row: int, color: str, status: str, detail: str):
+        state = (color, status, detail)
+        if self._prev_state.get(row) == state:
+            return
+        self._prev_state[row] = state
+
+        s_item = self._table.item(row, 1)
+        s_item.setText(f"{_DOT}  {status}")
+        s_item.setForeground(QColor(color))
+        s_item.setFont(self._font_status)
+
+        d_item = self._table.item(row, 2)
+        d_item.setText(detail)
+        d_item.setFont(self._font_detail)
+        d_item.setForeground(self._color_detail)
+
+    def _db_row(self, row: int, conn_attr: str, cfg_attr: str):
+        conn = getattr(database_manager, conn_attr, None)
+        try:
+            ok = conn is not None and conn.is_connected()
+        except Exception:
+            ok = False
+        host = getattr(database_manager, cfg_attr, {}).get('host', '?')
+        self._set_row(row, _OK if ok else _ERR,
+                      "Connected" if ok else "Disconnected", f"host: {host}")
 
     # ── refresh ───────────────────────────────────────────────────────────────
 
     def _refresh(self):
-        mw    = self._main
-        now   = time.time()
-        ago   = self._ago
-        sr    = self._set_row
+        mw  = self._main
+        now = time.time()
+        ago = lambda ts: self._ago(ts, now)
 
         # ── 0: PLC Worker ─────────────────────────────────────────────────────
         plc = getattr(mw, 'plc_window', None)
@@ -216,64 +244,55 @@ class FlowMonitorDialog(QDialog):
             mode = cfg.get('connection_mode', 'serial')
             if mode == 'tcp':
                 tcp_s  = self._tcp_status
-                color  = {"connected": "#27ae60", "reconnecting": "#f39c12"}.get(
-                    tcp_s, "#e74c3c"
-                )
+                color  = _TCP_COLOR.get(tcp_s, _ERR)
                 status = tcp_s.capitalize() if tcp_s not in ("unknown", "") else "Connecting…"
-                detail = (
-                    f"TCP mode  |  last data: {ago(self._ts_plc_data)}"
-                )
+                detail = f"TCP mode  |  last data: {ago(self._ts_plc_data)}"
             else:
                 ok     = getattr(plc, 'serial_connected', False)
-                color  = "#27ae60" if ok else "#e74c3c"
+                color  = _OK if ok else _ERR
                 status = "Connected" if ok else "Disconnected"
-                port   = cfg.get('port', '?')
-                detail = f"Serial {port}  |  last data: {ago(self._ts_plc_data)}"
+                detail = f"Serial {cfg.get('port', '?')}  |  last data: {ago(self._ts_plc_data)}"
         else:
-            color, status, detail = "#888", "N/A", "PLCWindow ยังไม่ถูก init"
-        sr(0, color, status, detail)
+            color, status, detail = _OFF, "N/A", "PLCWindow ยังไม่ถูก init"
+        self._set_row(0, color, status, detail)
 
         # ── 1: ShotCounter ────────────────────────────────────────────────────
         sc = getattr(mw, 'shot_counter', None)
         if sc:
             shot    = getattr(sc, 'shot_count', 0)
             product = getattr(sc, 'product_name', None) or "—"
-            lot     = (sc.product_data.get('lot_number', '—')
-                       if hasattr(sc, 'product_data') else '—')
-            sr(1, "#27ae60", "Active",
-               f"shot: {shot:,}  |  product: {product}  |  lot: {lot}")
+            lot     = sc.product_data.get('lot_number', '—') if hasattr(sc, 'product_data') else '—'
+            self._set_row(1, _OK, "Active",
+                          f"shot: {shot:,}  |  product: {product}  |  lot: {lot}")
         else:
-            sr(1, "#888", "N/A", "ยังไม่ถูก init")
+            self._set_row(1, _OFF, "N/A", "ยังไม่ถูก init")
 
         # ── 2: GraphUpdater ───────────────────────────────────────────────────
         gu = getattr(mw, 'graph_updater', None)
         if gu:
-            last   = getattr(gu, 'last_data', None)
-            lv     = getattr(gu, 'last_values', {}) or {}
-            color  = "#27ae60" if last is not None else "#f39c12"
-            status = "Active" if last is not None else "Waiting"
-            g, n   = lv.get('good_pcs', 0), lv.get('ng_pcs', 0)
-            sr(2, color, status,
-               f"last update: {ago(self._ts_graph)}  |  good: {g}  ng: {n}")
+            last  = getattr(gu, 'last_data', None)
+            lv    = getattr(gu, 'last_values', {}) or {}
+            color = _OK if last is not None else _WARN
+            g, n  = lv.get('good_pcs', 0), lv.get('ng_pcs', 0)
+            self._set_row(2, color, "Active" if last is not None else "Waiting",
+                          f"last update: {ago(self._ts_plc_data)}  |  good: {g}  ng: {n}")
         else:
-            sr(2, "#888", "N/A", "ยังไม่ถูก init")
+            self._set_row(2, _OFF, "N/A", "ยังไม่ถูก init")
 
         # ── 3: HeatMapDefect ──────────────────────────────────────────────────
         hm = getattr(mw, 'heat_map_defect', None)
         if hm:
-            ls = getattr(hm, 'last_shot_cnt', None)
-            ld = getattr(hm, 'last_dm1923',   None)
-            sr(3, "#27ae60", "Active",
-               f"last_shot_cnt: {ls}  |  last_dm1923: {ld}")
+            self._set_row(3, _OK, "Active",
+                          f"last_shot_cnt: {getattr(hm,'last_shot_cnt',None)}"
+                          f"  |  last_dm1923: {getattr(hm,'last_dm1923',None)}")
         else:
-            sr(3, "#888", "N/A", "ยังไม่ถูก init")
+            self._set_row(3, _OFF, "N/A", "ยังไม่ถูก init")
 
         # ── 4: DataSync ───────────────────────────────────────────────────────
-        ds = getattr(mw, 'update_data_manager', None)
-        if ds:
-            sr(4, "#27ae60", "Active", f"last sync: {ago(self._ts_datasync)}")
+        if getattr(mw, 'update_data_manager', None):
+            self._set_row(4, _OK, "Active", f"last sync: {ago(self._ts_plc_data)}")
         else:
-            sr(4, "#888", "N/A", "ยังไม่ถูก init")
+            self._set_row(4, _OFF, "N/A", "ยังไม่ถูก init")
 
         # ── 5: ProductionCalculator ───────────────────────────────────────────
         pc = getattr(mw, 'production_calculator', None)
@@ -281,42 +300,18 @@ class FlowMonitorDialog(QDialog):
             rates  = getattr(pc, 'current_rates', {})
             sph    = rates.get('sheets_per_hour', 0.0)
             pph    = rates.get('pcs_per_hour',    0.0)
-            ldr    = getattr(pc, 'last_data_received', None)
-            if ldr:
-                stale = now - ldr
-                if stale > getattr(pc, 'offline_threshold', 600):
-                    color, status = "#888888", "Offline"
-                elif stale > getattr(pc, 'stale_threshold', 120):
-                    color, status = "#3498db", "Stale"
-                else:
-                    color, status = "#27ae60", "Active"
-            else:
-                color, status = "#f39c12", "Waiting"
-            sr(5, color, status,
-               f"sheets/hr: {sph:.1f}  |  pcs/hr: {pph:.1f}  |  last calc: {ago(self._ts_prodcalc)}")
+            color, status = self._staleness_status(
+                getattr(pc, 'last_data_received', None), now
+            )
+            self._set_row(5, color, status,
+                          f"sheets/hr: {sph:.1f}  |  pcs/hr: {pph:.1f}"
+                          f"  |  last calc: {ago(self._ts_prodcalc)}")
         else:
-            sr(5, "#888", "N/A", "ยังไม่ถูก init")
+            self._set_row(5, _OFF, "N/A", "ยังไม่ถูก init")
 
         # ── 6 & 7: DB Read / Write ────────────────────────────────────────────
-        du = getattr(mw, 'data_upload', None)
-        db = getattr(du, 'db_manager', None) if du else None
-
-        def _db_row(row: int, conn_attr: str, cfg_attr: str):
-            if db:
-                conn = getattr(db, conn_attr, None)
-                try:
-                    ok = conn is not None and conn.is_connected()
-                except Exception:
-                    ok = False
-                color  = "#27ae60" if ok else "#e74c3c"
-                status = "Connected" if ok else "Disconnected"
-                host   = getattr(db, cfg_attr, {}).get('host', '?')
-                sr(row, color, status, f"host: {host}")
-            else:
-                sr(row, "#888", "N/A", "DataUploader ยังไม่ถูก init")
-
-        _db_row(6, '_read_connection',  '_read_config')
-        _db_row(7, '_write_connection', '_write_config')
+        self._db_row(6, '_read_connection',  '_read_config')
+        self._db_row(7, '_write_connection', '_write_config')
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
 

@@ -238,7 +238,12 @@ class MainWindow(QMainWindow):
             self._monitor_dialog.activateWindow()
             return
         self._monitor_dialog = FlowMonitorDialog(self, parent=self)
+        self._monitor_dialog.finished.connect(self._on_monitor_closed)
         self._monitor_dialog.show()
+
+    @Slot()
+    def _on_monitor_closed(self):
+        self._monitor_dialog = None
 
     @Slot(str)
     def _on_tcp_status_changed(self, status: str):
