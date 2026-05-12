@@ -151,11 +151,17 @@ class PLCWindow(QMainWindow):
         self._init_plc_values()
         self.force_emit_counter = 0
 
-        # === เลือก Worker ตาม connection_mode ===
-        connection_mode = self.plc_config.get('connection_mode', 'serial')
+        # === เลือก Worker ตาม connection_mode / mock_mode ===
+        connection_mode   = self.plc_config.get('connection_mode', 'serial')
+        self.is_mock_mode = bool(config_manager.current_config.get('mock_mode', False))
         self.worker_thread = QThread()
 
-        if connection_mode == 'tcp':
+        if self.is_mock_mode:
+            from src.simulated_plc_worker import SimulatedPLCWorker
+            self.worker = SimulatedPLCWorker()
+            self.worker.connection_status.connect(self.tcp_status_changed)
+            log.info("SIMULATOR mode: SimulatedPLCWorker active (mock_mode=true)")
+        elif connection_mode == 'tcp':
             tcp_cfg = config_manager.get_tcp_config()
             self.worker = TCPWorker(
                 pi_ip=tcp_cfg.get('pi_ip', '192.168.1.10'),
@@ -861,9 +867,10 @@ class PLCWindow(QMainWindow):
         self.data_updated.emit(data)
 
     def set_current_lot_number(self, lot_number):
-        """ตั้งค่า lot number ปัจจุบัน"""
         self.current_lot_number = lot_number
-        print(f"Set current lot number: {lot_number}")
+        if self.is_mock_mode and hasattr(self.worker, 'set_lot_number'):
+            self.worker.set_lot_number(lot_number)
+        log.debug("Set current lot number: %s", lot_number)
 
     def get_current_lot_number(self):
         return self.current_lot_number

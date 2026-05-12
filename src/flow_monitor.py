@@ -242,7 +242,14 @@ class FlowMonitorDialog(QDialog):
         if plc:
             cfg  = getattr(plc, 'plc_config', {})
             mode = cfg.get('connection_mode', 'serial')
-            if mode == 'tcp':
+            if getattr(plc, 'is_mock_mode', False):
+                tcp_s  = self._tcp_status
+                color  = _TCP_COLOR.get(tcp_s, _WARN)
+                status = f"Simulator ({tcp_s})" if tcp_s not in ("unknown", "") else "Simulator"
+                w      = getattr(plc, 'worker', None)
+                sheet  = getattr(w, '_total_sheet', 0)
+                detail = f"mock_mode  |  sheet: {sheet}  |  last data: {ago(self._ts_plc_data)}"
+            elif mode == 'tcp':
                 tcp_s  = self._tcp_status
                 color  = _TCP_COLOR.get(tcp_s, _ERR)
                 status = tcp_s.capitalize() if tcp_s not in ("unknown", "") else "Connecting…"

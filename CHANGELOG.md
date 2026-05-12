@@ -2,6 +2,53 @@
 
 ---
 
+## [2026-05-12] — Simulator System (mock_mode)
+
+### ไฟล์ที่แก้ไข / สร้างใหม่
+| ไฟล์ | ประเภทการเปลี่ยน |
+|------|-----------------|
+| `src/simulated_plc_worker.py` | **สร้างใหม่** — SimulatedPLCWorker |
+| `src/simulator_control.py` | **สร้างใหม่** — SimulatorControlPanel |
+| `src/PLCdata.py` | เพิ่ม mock_mode branch ใน `__init__` + ส่ง lot ให้ worker |
+| `src/flow_monitor.py` | เพิ่ม branch แสดงสถานะ Simulator mode |
+| `main.py` | เพิ่ม import + shortcut `Ctrl+Shift+S` + `_open_simulator_control()` |
+
+### วิธีใช้
+1. ตั้งค่า `"mock_mode": true` ใน [config.json](config.json)
+2. เปิดแอป → login ด้วย lot `TEST001` / `TEST002`, operator `EMP001` / `EMP002`
+3. กด **`Ctrl+Shift+S`** เปิด Simulator Control Panel
+
+### ครอบคลุม 4 scenarios
+| Scenario | วิธีเรียก |
+|----------|-----------|
+| Normal production | ค่าเริ่มต้น — sheet เพิ่มทุก 1 วินาที |
+| PLC disconnect/reconnect | ปุ่ม "📶 Disconnect PLC (5s)" |
+| High defect rate | ปุ่ม "⚡ High Defect (10s)" — defect_rate → 50% |
+| PM trigger | ปุ่ม "🔧 Jump to PM" — shot count กระโดดไป ~29,950 |
+
+### สิ่งที่ทำ
+
+**`simulated_plc_worker.py` (ใหม่)**
+- Interface เหมือน TCPWorker: `data_ready`, `finished`, `connection_status` signals
+- emit ข้อมูล PLC dict ครบทุก key: dm1923/dm1924/dm1925/dm1917/dm1919/dm191x + shot_number/pcs_number/defect_results/shot_per_pcs
+- สะสม cumulative registers (total_sheet, good_sheet, ng_sheet, total_pcs, good_pcs, defect counts) เหมือน PLC จริง
+- `inject_high_defect(duration_s)` — raise defect_rate ชั่วคราว
+- `trigger_jump_to_pm(current_shot_count)` — คำนวณ sheet ที่ต้องเพิ่มจาก `_PM_SHOT_LIMIT = 30,000`
+
+**`simulator_control.py` (ใหม่)**
+- Shot interval slider 100–10,000 ms
+- Defect rate slider 0–50%
+- Shots/sheet + PCS/shot spinbox
+- 4 scenario buttons
+- Live status: total_sheet, shot_count, PLC status, defect total (refresh 500ms)
+
+**`PLCdata.py`**
+- Before: เลือกระหว่าง serial / tcp เท่านั้น
+- After: mock_mode branch → SimulatedPLCWorker, ไม่เรียก `_init_serial()`, ต่อ `connection_status` → `tcp_status_changed`
+- `set_current_lot_number()` ส่ง lot ไปยัง worker เมื่อ mock_mode
+
+---
+
 ## [2026-05-12] — Real-time Flow Monitor
 
 ### ไฟล์ที่แก้ไข

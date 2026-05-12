@@ -62,6 +62,7 @@ from src.system_manager import SystemManager
 from src.Functions import GuiFunctions
 from src.config_dialog import ConfigDialog
 from src.flow_monitor import FlowMonitorDialog
+from src.simulator_control import SimulatorControlPanel
 
 log = get_logger("main")
 
@@ -140,8 +141,10 @@ class MainWindow(QMainWindow):
             self._setup_tcp_status_indicator()
 
             self._initialization_complete = True
-            self._monitor_dialog = None
+            self._monitor_dialog    = None
+            self._simulator_dialog  = None
             self._setup_flow_monitor_shortcut()
+            self._setup_simulator_shortcut()
             self.setAttribute(Qt.WA_DeleteOnClose)
             self.show()
             log.info("MainWindow initialization completed successfully")
@@ -244,6 +247,28 @@ class MainWindow(QMainWindow):
     @Slot()
     def _on_monitor_closed(self):
         self._monitor_dialog = None
+
+    # ─── Simulator Control ────────────────────────────────────────────────────
+
+    def _setup_simulator_shortcut(self):
+        if not config_manager.current_config.get('mock_mode', False):
+            return
+        shortcut = QShortcut(QKeySequence("Ctrl+Shift+S"), self)
+        shortcut.activated.connect(self._open_simulator_control)
+
+    @Slot()
+    def _open_simulator_control(self):
+        if self._simulator_dialog and self._simulator_dialog.isVisible():
+            self._simulator_dialog.raise_()
+            self._simulator_dialog.activateWindow()
+            return
+        self._simulator_dialog = SimulatorControlPanel(self, parent=self)
+        self._simulator_dialog.finished.connect(self._on_simulator_closed)
+        self._simulator_dialog.show()
+
+    @Slot()
+    def _on_simulator_closed(self):
+        self._simulator_dialog = None
 
     @Slot(str)
     def _on_tcp_status_changed(self, status: str):
