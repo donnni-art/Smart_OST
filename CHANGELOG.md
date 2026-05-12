@@ -2,6 +2,30 @@
 
 ---
 
+## [2026-05-12] — Real-time Flow Monitor
+
+### ไฟล์ที่แก้ไข
+| ไฟล์ | ประเภทการเปลี่ยน |
+|------|-----------------|
+| `src/flow_monitor.py` | **สร้างใหม่** — FlowMonitorDialog |
+| `main.py` | เพิ่ม import + shortcut `Ctrl+Shift+M` + `_open_flow_monitor()` |
+
+### สิ่งที่เพิ่ม
+
+**`src/flow_monitor.py` — FlowMonitorDialog (ใหม่)**
+- Before: ไม่มีวิธีดูสถานะ node ทั้งหมดแบบ real-time
+- After: QDialog แสดงตาราง 8 node พร้อม colored dot (●) อัพเดตทุก 500ms โดยไม่ต้องแก้ไข component เดิม
+- Node ที่ monitor: PLC Worker, ShotCounter, GraphUpdater, HeatMapDefect, DataSync, ProductionCalculator, DB Read, DB Write
+- hook เข้า `plc_window.data_updated`, `tcp_status_changed`, `production_calculator.production_rates_updated` เพื่อ track timestamp จริง
+- disconnect signals ใน `closeEvent` ป้องกัน dangling reference
+
+**`main.py` — shortcut เปิด monitor**
+- เพิ่ม `QKeySequence`, `QShortcut` ใน import
+- `_setup_flow_monitor_shortcut()` ผูก `Ctrl+Shift+M` → `_open_flow_monitor()`
+- `_open_flow_monitor()` เปิด dialog ใหม่ หรือ raise ถ้า dialog เปิดอยู่แล้ว
+
+---
+
 ## [2026-05-12] — PLC Data Reading Bug Fixes
 
 ### ไฟล์ที่แก้ไข

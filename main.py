@@ -37,7 +37,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QMessageBox, QLabel,
 )
 from PySide6.QtCore import Qt, Signal, QSettings, QCoreApplication, QLocale, Slot
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QKeySequence, QShortcut
 
 # ─── Custom widgets ───────────────────────────────────────────────────────────
 from Custom_Widgets import *
@@ -61,6 +61,7 @@ from src.production_calculator import ProductionCalculator
 from src.system_manager import SystemManager
 from src.Functions import GuiFunctions
 from src.config_dialog import ConfigDialog
+from src.flow_monitor import FlowMonitorDialog
 
 log = get_logger("main")
 
@@ -139,6 +140,8 @@ class MainWindow(QMainWindow):
             self._setup_tcp_status_indicator()
 
             self._initialization_complete = True
+            self._monitor_dialog = None
+            self._setup_flow_monitor_shortcut()
             self.setAttribute(Qt.WA_DeleteOnClose)
             self.show()
             log.info("MainWindow initialization completed successfully")
@@ -221,6 +224,21 @@ class MainWindow(QMainWindow):
         self.ui.horizontalLayout_7.insertWidget(1, self._tcp_status_label)
         self.plc_window.tcp_status_changed.connect(self._on_tcp_status_changed)
         self._on_tcp_status_changed("reconnecting")
+
+    # ─── Flow Monitor ─────────────────────────────────────────────────────────
+
+    def _setup_flow_monitor_shortcut(self):
+        shortcut = QShortcut(QKeySequence("Ctrl+Shift+M"), self)
+        shortcut.activated.connect(self._open_flow_monitor)
+
+    @Slot()
+    def _open_flow_monitor(self):
+        if self._monitor_dialog and self._monitor_dialog.isVisible():
+            self._monitor_dialog.raise_()
+            self._monitor_dialog.activateWindow()
+            return
+        self._monitor_dialog = FlowMonitorDialog(self, parent=self)
+        self._monitor_dialog.show()
 
     @Slot(str)
     def _on_tcp_status_changed(self, status: str):
