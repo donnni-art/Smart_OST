@@ -1,0 +1,98 @@
+	MainUi/
+	└── main.py
+	└── icons_rs.py
+	└── config.json
+	└── hook-mysql.connector.py
+	└── README.md
+	└── ui/
+	│   ├── logs/
+	│   ├── Demo2.ui                  #login main Ui
+	│   ├── interface.ui              #Main Ui
+	│   ├── LoginPM.ui                #loginPM Ui
+	│   ├── Logout.ui                 #logout main Ui
+	│   ├── PM.ui                     #form PM Ui
+	│   ├── pm_popupScanLeader.ui     #Dialog loginPM for leader Ui
+	│   ├── pm_popupScanRepair.ui     #Dialog loginPM for staff Ui
+	│   ├── PopupScan.ui              #loginPM scan user Ui
+	│   ├── PopupScanCodeFixture.ui   #loginPM scan tooling fixture Ui
+	│   ├── PopupScanPOS.ui           #loginPM scan process Ui
+	│ 
+	├── src/
+	│   ├── __pycache__/
+	│   ├── logs/
+	│   ├── custom_warning_dialog.py     # New
+	│   ├── data_upload.py               # Upload to server
+	│   ├── Functions.py                 # Manager main qt
+	│   ├── graph_manager.py             # Manager graph
+	│   ├── graph_updater.py             # Manager update graph
+	│   ├── heat_map_defect.py           # Heat map graph and get data from PLC for upload to csv and sever
+	│   ├── login_manager.py             # Manager login
+	│   ├── login_pm.py                  # login system
+	│   ├── login_scan.py                # dialog scan process
+	│   ├── logout_window.py             # logout system	
+	│   ├── PLCdata.py                   # communication PLC
+	│   ├── shot_counting.py             # get data from PLC to calculate and plot graph
+	│   ├── ui_Demo2.py                  # convert .ui to python
+	│   ├── ui_interface.py              # convert .ui to python
+	│   ├── ui_LoginPM.py                # convert .ui to python
+	│   ├── ui_Logout.py                 # convert .ui to python
+	│   ├── ui_PM.py                     # convert .ui to python
+	│   ├── ui_pm_popupScanLeader.py     # convert .ui to python
+	│   ├── ui_pm_popupScanRepair.py     # convert .ui to python
+	│   ├── ui_PopupScan.py              # convert .ui to python
+	│   ├── ui_PopupScanCodeFixture.py   # convert .ui to python
+	│   ├── ui_PopupScanPOS.py           # convert .ui to python
+	│   ├── update_data_manager.py       # convert .ui to python
+	│ 
+	├── templat/
+	│   ├── form PM.xlsx
+	│ 
+	├── shot_counts/
+	│   ├── shotcount.txt
+	│ 
+	├── PM/
+	│   ├── shotcount.xlsx    #Save data shot count after PM finish
+	│ 
+	├── Qss/
+	│   ├── icons/
+	│   │   ├── 000000/
+	│   │   ├── 64748B/
+	│   │   ├── black/
+	│   │   ├── fefefe/
+	│   │   ├── FFFFFF/
+	│   │   ├── Icons/
+	│   │   ├── _icons.qrc
+	│
+	│   ├── scss/
+	│   │   ├── _styles.scss
+	│   │   ├── _variables.scss
+	│   │   ├── defaultStyle.scss
+	│   │   ├── main.scss
+	│ 
+	├── logs/
+	│   ├── custom_widgets.log
+	│ 
+	├── json-styles/
+	│   ├── dialog_style.json
+	│   ├── style.json
+	│ 
+	├── generated-files/
+	│   ├── css/
+	│   ├── json/
+	│   ├── ui/
+	│ 
+	├── fonts/
+	│   ├── google-sans-cufonfonts/
+	│ 
+	├── defect_raw_data/
+	│   ├── Product_name/
+	│   │   ├── lot number/   
+	│   │   │   │── defect_data_date_time.csv  
+	│   │   │   │── metadata.json
+	│
+	├── __pycache__/
+	│   ├── grap_manager.cpython-310
+	│   ├── icons_rc.cpython-310
+	│   ├── login.cpython-310
+	│   ├── login_pm.cpython-310
+	│   ├── PLCdata.cpython-310

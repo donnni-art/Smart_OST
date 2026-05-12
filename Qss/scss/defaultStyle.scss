@@ -1,0 +1,338 @@
+
+//===================================================//
+// FILE AUTO-GENERATED. PUT YOUR DEFAULT STYLES HERE.
+// THESE STYLES WILL OVERRIDE THE THEME STYLES
+//====================================================//
+
+// ─── Typography ──────────────────────────────────────────────────────────────
+* {
+    font-family: 'Product Sans', 'Segoe UI', 'Sans Serif';
+    font-size: 10pt;
+}
+
+// ─── App window ──────────────────────────────────────────────────────────────
+QMainWindow, #centralwidget {
+    background-color: $COLOR_BACKGROUND_1;
+    border-radius: 10px;
+    border: 2px solid $COLOR_BACKGROUND_4;
+}
+
+// ─── Global buttons ──────────────────────────────────────────────────────────
+QPushButton {
+    padding: 6px 12px;
+    border-radius: 8px;
+    min-width: auto;
+    color: $COLOR_TEXT_1;
+    background-color: $COLOR_BACKGROUND_2;
+    border: 1px solid $COLOR_BACKGROUND_3;
+}
+QPushButton:hover {
+    background-color: $COLOR_BACKGROUND_3;
+    border-color: $COLOR_ACCENT_2;
+}
+QPushButton:pressed {
+    background-color: $COLOR_ACCENT_1;
+    color: white;
+}
+
+QLineEdit, QDateEdit {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid $COLOR_BACKGROUND_3;
+    background-color: $COLOR_BACKGROUND_2;
+    color: $COLOR_TEXT_1;
+}
+QLineEdit:focus, QDateEdit:focus {
+    border: 1px solid $COLOR_ACCENT_1;
+}
+
+QComboBox {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid $COLOR_BACKGROUND_3;
+    background-color: $COLOR_BACKGROUND_2;
+    color: $COLOR_TEXT_1;
+}
+
+// ─── Left menu ───────────────────────────────────────────────────────────────
+#leftMenu {
+    background-color: $COLOR_BACKGROUND_1;
+    padding-top: 8px;
+    border-right: 3px solid $COLOR_BACKGROUND_3;
+}
+#leftMenu QWidget {
+    background-color: transparent;
+}
+#leftMenu QPushButton {
+    background-color: transparent;
+    color: $COLOR_TEXT_2;
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 0;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border: none;
+    border-left: 3px solid transparent;
+    font-weight: normal;
+}
+#leftMenu QPushButton:hover {
+    background-color: $COLOR_BACKGROUND_2;
+    color: $COLOR_TEXT_1;
+    border-left: 3px solid $COLOR_ACCENT_2;
+}
+
+// ─── Center menu ─────────────────────────────────────────────────────────────
+#centerMenu {
+    border-left: 4px solid $COLOR_ACCENT_1;
+    border-right: 3px solid $COLOR_BACKGROUND_3;
+}
+#centerMenu > QWidget {
+    background-color: transparent;
+    padding: 10px;
+    border-bottom: 1px solid $COLOR_BACKGROUND_3;
+}
+#centerMenu > QWidget * {
+    background-color: transparent;
+}
+#centerMenu > QStackedWidget {
+    border-radius: 10px;
+    background-color: transparent;
+    border: none;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+#header {
+    background-color: $COLOR_BACKGROUND_1;
+    border-bottom: 1px solid $COLOR_BACKGROUND_3;
+    min-height: 38px;
+    max-height: 44px;
+}
+#header * {
+    background-color: transparent;
+}
+#titleTxt {
+    color: $COLOR_ACCENT_1;
+    font-size: 13pt;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+#window {
+    padding: 0;
+}
+#window QPushButton {
+    padding: 5px 8px;
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+}
+#window QPushButton:hover {
+    background-color: $COLOR_BACKGROUND_2;
+}
+#window #closeBtn:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+// ─── Main pages ──────────────────────────────────────────────────────────────
+#mainPages {
+    background-color: $COLOR_BACKGROUND_2;
+    border: none;
+    border-radius: 10px;
+}
+#mainPages QStackedWidget {
+    background-color: transparent;
+    border: none;
+}
+#dashboardPage, #dataPage, #morePage, #operator_2 {
+    background-color: $COLOR_BACKGROUND_2;
+}
+#dashboardPage *, #dataPage *, #morePage *, #operator_2 * {
+    background-color: transparent;
+    border: none;
+}
+
+// ─── Info cards (Product Name / Lot Number / Tooling Code / Operator Name) ───
+#frame_3, #frame_4, #frame_5, #frame_6 {
+    background-color: $COLOR_BACKGROUND_1;
+    border: 1px solid $COLOR_BACKGROUND_3;
+    border-radius: 10px;
+    padding: 4px 6px;
+}
+#frame_3 QLabel, #frame_4 QLabel,
+#frame_5 QLabel, #frame_6 QLabel {
+    background-color: transparent;
+    color: $COLOR_TEXT_1;
+}
+
+// ─── Shot Count + action buttons card ────────────────────────────────────────
+#frame_7 {
+    background-color: $COLOR_BACKGROUND_1;
+    border: 1px solid $COLOR_BACKGROUND_3;
+    border-left: 4px solid $COLOR_ACCENT_1;
+    border-radius: 10px;
+}
+#frame_7 QLabel {
+    background-color: transparent;
+    color: $COLOR_TEXT_1;
+}
+#label_11 {
+    color: $COLOR_ACCENT_1;
+    font-weight: bold;
+    font-size: 10pt;
+}
+#shot_cnt {
+    color: $COLOR_ACCENT_1;
+    font-size: 14pt;
+    font-weight: bold;
+}
+
+// Manual PM button
+#pushButton_2 {
+    background-color: $COLOR_BACKGROUND_2;
+    color: $COLOR_TEXT_1;
+    border: 1px solid $COLOR_BACKGROUND_3;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 6px 14px;
+    min-width: 101px;
+}
+#pushButton_2:hover {
+    background-color: $COLOR_ACCENT_1;
+    color: white;
+    border-color: $COLOR_ACCENT_1;
+}
+
+// Finish Lot button
+#finish_lot {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 12pt;
+    padding: 8px 16px;
+}
+#finish_lot:hover {
+    background-color: #219150;
+}
+#finish_lot:pressed {
+    background-color: #1a7342;
+}
+
+// ─── KPI cards — labels inside (background cleared in Python) ────────────────
+#widget_9 QLabel, #widget_10 QLabel, #widget_11 QLabel {
+    color: white;
+    background-color: transparent;
+    font-weight: bold;
+}
+
+// ─── Progress bars ───────────────────────────────────────────────────────────
+QProgressBar {
+    height: 6px;
+    border-radius: 3px;
+    background-color: $COLOR_BACKGROUND_3;
+    border: none;
+    text-align: center;
+}
+QProgressBar::chunk {
+    background-color: $COLOR_ACCENT_1;
+    border-radius: 3px;
+}
+
+// ─── Search bar ──────────────────────────────────────────────────────────────
+#search {
+    border-right: 1px solid $COLOR_BACKGROUND_3;
+    border-radius: 0;
+}
+#search * {
+    border: none;
+    background-color: transparent;
+    border-radius: 2px;
+}
+#search:hover {
+    background-color: $COLOR_BACKGROUND_2;
+}
+#search QPushButton:hover {
+    background-color: $COLOR_ACCENT_1;
+    color: white;
+}
+
+// ─── Dialogs ─────────────────────────────────────────────────────────────────
+QDialog {
+    background-color: $COLOR_BACKGROUND_1;
+    border-radius: 12px;
+    border: 2px solid $COLOR_BACKGROUND_3;
+}
+QDialog QLabel {
+    color: $COLOR_TEXT_1;
+    background-color: transparent;
+}
+QDialog QPushButton {
+    padding: 8px 16px;
+    border-radius: 8px;
+    min-width: 70px;
+}
+QDialog QPushButton#id_pm {
+    background-color: $COLOR_ACCENT_1;
+    color: white;
+    border: none;
+    font-weight: bold;
+}
+QDialog QPushButton#id_pm:hover {
+    background-color: $COLOR_ACCENT_2;
+}
+QDialog QPushButton#pushButton_D {
+    background-color: $COLOR_BACKGROUND_2;
+    border: 1px solid $COLOR_BACKGROUND_3;
+}
+QDialog QPushButton#pushButton_D:hover {
+    background-color: $COLOR_BACKGROUND_3;
+}
+
+// ─── Scrollbars ──────────────────────────────────────────────────────────────
+QScrollBar:vertical {
+    background: $COLOR_BACKGROUND_2;
+    width: 8px;
+    border-radius: 4px;
+    margin: 0;
+}
+QScrollBar::handle:vertical {
+    background: $COLOR_BACKGROUND_4;
+    border-radius: 4px;
+    min-height: 20px;
+}
+QScrollBar::handle:vertical:hover {
+    background: $COLOR_ACCENT_1;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QScrollBar:horizontal {
+    background: $COLOR_BACKGROUND_2;
+    height: 8px;
+    border-radius: 4px;
+}
+QScrollBar::handle:horizontal {
+    background: $COLOR_BACKGROUND_4;
+    border-radius: 4px;
+    min-width: 20px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: $COLOR_ACCENT_1;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+#footer {
+    background-color: $COLOR_BACKGROUND_1;
+    border-top: 3px solid $COLOR_BACKGROUND_3;
+}
+#footer * {
+    background-color: transparent;
+}
+
+//===================================================//
+// END
+//====================================================//

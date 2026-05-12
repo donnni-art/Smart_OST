@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build artifacts
+build/
+*.spec
+
+# Sensitive config
+config.json
+
+# Logs
+logs/
+*.log
+
+# Data folders
+defect_raw_data/
+shot_counts/
+paths_config/
+
+# Generated icons (large binary)
+icons_rc.py
+
+# Debug/test scripts with credentials
+src/test.py
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+*.swp
+*.swo
+
+# PyInstaller
+*.manifest

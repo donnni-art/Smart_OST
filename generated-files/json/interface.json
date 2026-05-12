@@ -1,0 +1,60 @@
+{
+  "QPushButton": [
+    {
+      "name": "menuBtn",
+      "icon": "Qss/icons/icons/feather/menu.png"
+    },
+    {
+      "name": "dashboardBtn",
+      "icon": "Qss/icons/icons/feather/pie-chart.png"
+    },
+    {
+      "name": "dataBtn",
+      "icon": "Qss/icons/icons/feather/database.png"
+    },
+    {
+      "name": "operatorBtn",
+      "icon": "Qss/icons/icons/feather/user.png"
+    },
+    {
+      "name": "moreBtn",
+      "icon": "Qss/icons/icons/feather/more-horizontal.png"
+    },
+    {
+      "name": "repairBtn",
+      "icon": "Qss/icons/icons/feather/tool.png"
+    },
+    {
+      "name": "informationBtn",
+      "icon": "Qss/icons/icons/feather/alert-circle.png"
+    },
+    {
+      "name": "settingsBtn",
+      "icon": "Qss/icons/icons/feather/settings.png"
+    },
+    {
+      "name": "closeCenterMenuBtn",
+      "icon": "Qss/icons/icons/feather/x-circle.png"
+    },
+    {
+      "name": "minimizeBtn",
+      "icon": "Qss/icons/icons/feather/minus.png"
+    },
+    {
+      "name": "restoreBtn",
+      "icon": "Qss/icons/icons/feather/square.png"
+    },
+    {
+      "name": "closeBtn",
+      "icon": "Qss/icons/icons/feather/window_close.png"
+    },
+    {
+      "name": "pushButton_2",
+      "icon": "Qss/icons/icons/feather/refresh-ccw.png"
+    },
+    {
+      "name": "finish_lot",
+      "icon": "Qss/icons/icons/feather/save.png"
+    }
+  ]
+}

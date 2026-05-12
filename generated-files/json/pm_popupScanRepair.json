@@ -1,0 +1,22 @@
+{
+  "QLabel": [
+    {
+      "name": "icon",
+      "pixmap": "Qss/icons/icons/material_design/people_outline.png"
+    }
+  ],
+  "QPushButton": [
+    {
+      "name": "Refresh_scan",
+      "icon": "Qss/icons/icons/feather/refresh-ccw.png"
+    },
+    {
+      "name": "confirmID",
+      "icon": "Qss/icons/icons/feather/check.png"
+    },
+    {
+      "name": "pushButton_D",
+      "icon": "Qss/icons/icons/feather/x-circle.png"
+    }
+  ]
+}

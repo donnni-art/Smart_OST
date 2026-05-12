@@ -1,0 +1,26 @@
+{
+  "QLabel": [
+    {
+      "name": "icon",
+      "pixmap": "Qss/icons/icons/feather/check-square.png"
+    }
+  ],
+  "QPushButton": [
+    {
+      "name": "id_repair",
+      "icon": "Qss/icons/icons/font_awesome/solid/screwdriver-wrench.png"
+    },
+    {
+      "name": "id_leader",
+      "icon": "Qss/icons/icons/feather/user.png"
+    },
+    {
+      "name": "id_pm",
+      "icon": "Qss/icons/icons/feather/log-in.png"
+    },
+    {
+      "name": "pushButton_D",
+      "icon": "Qss/icons/icons/feather/x-circle.png"
+    }
+  ]
+}

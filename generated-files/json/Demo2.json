@@ -1,0 +1,8 @@
+{
+  "QDialog": [
+    {
+      "name": "Demo1",
+      "icon": "Qss/icons/icons/material_design/login.png"
+    }
+  ]
+}
