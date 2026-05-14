@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QDialog
-from PySide6.QtCore import Qt, QSettings, Signal 
+from PySide6.QtCore import Qt, QSettings, Signal
 from PySide6.QtGui import QPixmap, QIcon, QColor
 import csv
 import os
@@ -7,6 +7,9 @@ from functools import lru_cache
 import csv
 from datetime import datetime
 from src.ui_Logout import Ui_Finish
+from src.app_logger import get_logger
+
+log = get_logger("logout")
 class LogoutWindow(QMainWindow):
     # ✅ เพิ่ม Signal สำหรับแจ้ง MainWindow เมื่อ logout สำเร็จ
     logout_completed = Signal()
@@ -44,7 +47,7 @@ class LogoutWindow(QMainWindow):
         # ✅ ตัวแปรเก็บข้อมูลที่ operator กรอก
         self.logout_data = {}
         
-        print("✅ LogoutWindow initialized successfully")
+        log.info("LogoutWindow initialized successfully")
     
     def validate_theme_settings(self, theme_settings):
         """ตรวจสอบความถูกต้องของ theme_settings"""
@@ -60,12 +63,12 @@ class LogoutWindow(QMainWindow):
             # ✅ ใช้ fallback ถ้าไม่ได้รับ theme_settings
             if not self.theme_settings or not self.validate_theme_settings(self.theme_settings):
                 self.theme_settings = self._get_fallback_theme()
-                print("⚠️ Using fallback theme for LogoutWindow")
+                log.warning("Using fallback theme for LogoutWindow")
             
             icons_color = self.theme_settings.get("Icons-color", "#000000")
             accent_color = self.theme_settings.get("Accent-color", "#26bae3")
             
-            print(f"🎨 LogoutWindow updating icons with color: {icons_color}")
+            log.debug("LogoutWindow updating icons with color: %s", icons_color)
             
             # ✅ อัพเดต icon หลัก (log-out)
             logout_icon = self.create_colored_icon(":/feather/icons/feather/log-out.png", icons_color)
@@ -82,10 +85,10 @@ class LogoutWindow(QMainWindow):
             if not close_icon.isNull():
                 self.ui.close_finish.setIcon(QIcon(close_icon))
             
-            print("✅ LogoutWindow icons updated successfully")
+            log.info("LogoutWindow icons updated successfully")
             
         except Exception as e:
-            print(f"❌ Error updating icons in LogoutWindow: {e}")
+            log.error("Error updating icons in LogoutWindow: %s", e)
             # ✅ แสดง icon ต้นฉบับเป็น fallback
             self._load_default_icons()
     
@@ -107,9 +110,9 @@ class LogoutWindow(QMainWindow):
             self.ui.icon_logout.setPixmap(QPixmap(":/feather/icons/feather/log-out.png"))
             self.ui.save_finish.setIcon(QIcon(":/feather/icons/feather/save.png"))
             self.ui.close_finish.setIcon(QIcon(":/feather/icons/feather/x-circle.png"))
-            print("✅ Loaded default icons as fallback")
+            log.info("Loaded default icons as fallback")
         except Exception as e:
-            print(f"⚠️ Cannot load default icons: {e}")
+            log.warning("Cannot load default icons: %s", e)
     
     @lru_cache(maxsize=32)
     def create_colored_icon(self, icon_path, color):
@@ -124,7 +127,7 @@ class LogoutWindow(QMainWindow):
             # โหลด icon ดั้งเดิม
             original_pixmap = QPixmap(icon_path)
             if original_pixmap.isNull():
-                print(f"❌ Cannot load icon: {icon_path}")
+                log.error("Cannot load icon: %s", icon_path)
                 return QPixmap()
             
             # สร้าง QImage ใหม่ด้วยสีที่ต้องการ
@@ -145,7 +148,7 @@ class LogoutWindow(QMainWindow):
             return result
             
         except Exception as e:
-            print(f"❌ Error creating colored icon: {e}")
+            log.error("Error creating colored icon: %s", e)
             return QPixmap(icon_path)
     
     def setup_connections(self):
@@ -175,17 +178,17 @@ class LogoutWindow(QMainWindow):
             for field in data_fields:
                 field.textChanged.connect(self._safe_collect_logout_data)
                 
-            print("✅ LogoutWindow connections established successfully")
+            log.info("LogoutWindow connections established successfully")
             
         except Exception as e:
-            print(f"❌ Error setting up connections: {e}")
+            log.error("Error setting up connections: %s", e)
     
     def _safe_update_total_ng(self):
         """อัพเดต TOTAL NG แบบ real-time พร้อม error handling"""
         try:
             self.update_total_ng()
         except Exception as e:
-            print(f"⚠️ Error updating total NG: {e}")
+            log.warning("Error updating total NG: %s", e)
             self.ui.lineEdit_tatal.setText("0")
     
     def _safe_collect_logout_data(self):
@@ -193,7 +196,7 @@ class LogoutWindow(QMainWindow):
         try:
             self._collect_logout_data()
         except Exception as e:
-            print(f"⚠️ Error collecting logout data: {e}")
+            log.warning("Error collecting logout data: %s", e)
     
     def setup_initial_data(self):
         """ตั้งค่าข้อมูลเริ่มต้นใน UI"""
@@ -250,10 +253,10 @@ class LogoutWindow(QMainWindow):
                 'notes': self.ui.lineEdit_note.text().strip(),
                 'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ✅ แก้ไขบรรทัดนี้
             }
-            print(f"📝 Collected logout data: {self.logout_data}")
+            log.debug("Collected logout data: %s", self.logout_data)
             
         except Exception as e:
-            print(f"❌ Error collecting logout data: {e}")
+            log.error("Error collecting logout data: %s", e)
     
     def validate_inputs(self):
         """ตรวจสอบความถูกต้องของข้อมูล"""
@@ -324,11 +327,11 @@ class LogoutWindow(QMainWindow):
                     data['notes']
                 ])
             
-            print(f"✅ Logout data saved to {filename}")
+            log.info("Logout data saved to %s", filename)
             return True
             
         except Exception as e:
-            print(f"❌ Error saving logout data: {e}")
+            log.error("Error saving logout data: %s", e)
             return False
     
     def save_and_logout(self):
@@ -345,7 +348,7 @@ class LogoutWindow(QMainWindow):
             
             # 3. เรียก manual_save เพื่อบันทึก shot count
             if self.shot_counter:
-                print("💾 Saving shot count data...")
+                log.info("Saving shot count data...")
                 self.shot_counter.manual_save()
             
             # 4. ดึงข้อมูล product_name และ lot_number จาก shot_counter
@@ -355,29 +358,29 @@ class LogoutWindow(QMainWindow):
             if self.shot_counter and hasattr(self.shot_counter, 'product_data'):
                 product_name = self.shot_counter.product_data.get('product_name', 'Unknown')
                 lot_number = self.shot_counter.product_data.get('lot_number', 'Unknown')
-                print(f"📦 ดึงข้อมูลผลิตภัณฑ์: {product_name}, ล็อต: {lot_number}")
+                log.info("Product data retrieved: %s, lot: %s", product_name, lot_number)
             else:
-                print("⚠️ ไม่พบข้อมูลผลิตภัณฑ์ใน shot_counter")
+                log.warning("No product data found in shot_counter")
             
             # 5. บันทึกข้อมูล logout
-            print("📝 Saving logout data...")
+            log.info("Saving logout data...")
             save_success = self.save_logout_data(product_name, lot_number, logout_data)
             
             # ✅ Save to Database (Localhost)
             if self.data_uploader:
-                print("💾 Saving logout confirmation to database...")
+                log.info("Saving logout confirmation to database...")
                 # Add lot_number to logout_data for database update
                 logout_data['lot_number'] = lot_number
                 db_result = self.data_uploader.update_logout_data(logout_data)
                 
                 if db_result.get('status') == 'success':
-                    print("✅ Database update successful")
+                    log.info("Database update successful")
                 else:
-                    print(f"⚠️ Database update failed: {db_result.get('message')}")
+                    log.warning("Database update failed: %s", db_result.get('message'))
                     # Note: We continue even if DB save fails, as CSV save is done? 
                     # Or should we alert user? Let's print for now.
             else:
-                print("⚠️ No DataUploader instance available")
+                log.warning("No DataUploader instance available")
             
             if save_success:
                 # 6. ✅ ส่งสัญญาณว่า logout สำเร็จ
@@ -400,7 +403,7 @@ class LogoutWindow(QMainWindow):
             
         except Exception as e:
             error_msg = f"เกิดข้อผิดพลาดในการบันทึกข้อมูล: {str(e)}"
-            print(f"❌ {error_msg}")
+            log.error("%s", error_msg)
             QMessageBox.critical(self, "Error", error_msg)
     
     def cleanup_after_logout(self):
@@ -415,10 +418,10 @@ class LogoutWindow(QMainWindow):
                 if hasattr(self.parent.ui, 'statusbar'):
                     self.parent.ui.statusbar.showMessage("✅ Logged out successfully", 5000)
             
-            print("🧹 Cleanup after logout completed")
+            log.info("Cleanup after logout completed")
             
         except Exception as e:
-            print(f"⚠️ Error during cleanup: {e}")
+            log.warning("Error during cleanup: %s", e)
     
     def showEvent(self, event):
         """เรียกเมื่อหน้าต่างแสดงขึ้นมา - อัพเดตธีมล่าสุด"""
@@ -430,6 +433,6 @@ class LogoutWindow(QMainWindow):
             if self.validate_theme_settings(new_theme):
                 self.theme_settings = new_theme
                 self.update_icons()
-                print("✅ Updated LogoutWindow theme with validation")
+                log.info("Updated LogoutWindow theme with validation")
             else:
-                print("⚠️ Invalid theme settings from parent, using current theme")
+                log.warning("Invalid theme settings from parent, using current theme")

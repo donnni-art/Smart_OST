@@ -30,6 +30,9 @@ from PySide6.QtCore import QCoreApplication
 from src.login_scan import MyWindow
 from src.lot_checker import lot_checker
 from src.data_upload import DataUploader
+from src.app_logger import get_logger
+
+log = get_logger("login_mgr")
 
 class LoginManager:
     def __init__(self, plc_window, parent=None):
@@ -70,7 +73,7 @@ class LoginManager:
         """Execute login process with Lot Number pre-check"""
         # ✅ Prevent duplicate login attempts
         if self._is_logging_in:
-            print("⚠️ Login process already in progress")
+            log.warning("Login process already in progress")
             return False
             
         self._is_logging_in = True
@@ -83,7 +86,7 @@ class LoginManager:
             
             if lot_check_result == 'DIRECT_LOGIN':
                 # Lot is valid, data loaded - go directly to dashboard
-                print("✅ Lot pre-check passed - Direct login")
+                log.info("Lot pre-check passed - Direct login")
                 self._is_logging_in = False
                 return True
             elif lot_check_result == 'CANCEL':
@@ -173,7 +176,7 @@ class LoginManager:
             return 'MANUAL_LOGIN'
         
         # Check Lot in Big Data database
-        print(f"🔍 Checking Lot Number: {lot_number}")
+        log.debug("Checking Lot Number: %s", lot_number)
         result = lot_checker.check_lot(lot_number.strip())
         
         status = result.get('status', 'ERROR')
@@ -183,7 +186,7 @@ class LoginManager:
         
         if status == 'VALID':
             # Lot is valid - now verify Fixture and Operator
-            print(f"✅ Lot {lot_number} is valid - verifying Fixture and Operator...")
+            log.info("Lot %s is valid - verifying Fixture and Operator...", lot_number)
             
             tooling_code = lot_data.get('tooling_code', '')
             operator_id = lot_data.get('operator_id', '')
@@ -192,21 +195,21 @@ class LoginManager:
             # ========================================================
             # VERIFY FIXTURE
             # ========================================================
-            print(f"🔍 Verifying Fixture: {tooling_code}")
+            log.debug("Verifying Fixture: %s", tooling_code)
             is_fixture_valid, fixture_data = self.data_uploader.check_fixture_validity(tooling_code, mode='mass')
             
             if not is_fixture_valid:
-                print(f"⚠️ Fixture not found in local DB: {tooling_code}")
+                log.warning("Fixture not found in local DB: %s", tooling_code)
                 # ลองค้นหาใน FA mode
                 is_fixture_valid, fixture_data = self.data_uploader.check_fixture_validity(tooling_code, mode='fa')
             
             if is_fixture_valid and fixture_data:
                 fpc_pd_name = fixture_data.get('fpc_pd_name', '') or fixture_data.get('Product_Name', '')
-                print(f"✅ Fixture valid - fpc_pd_name: {fpc_pd_name}")
+                log.info("Fixture valid - fpc_pd_name: %s", fpc_pd_name)
                 
                 # ตรวจสอบ Product Matching
                 if not self.data_uploader.is_product_matching(product_name, fpc_pd_name):
-                    print(f"⚠️ Product mismatch: {product_name} vs {fpc_pd_name}")
+                    log.warning("Product mismatch: %s vs %s", product_name, fpc_pd_name)
                     QMessageBox.warning(
                         self.parent,
                         "Product ไม่ตรงกับ Fixture",
@@ -219,7 +222,7 @@ class LoginManager:
                 lot_data['is_fixture_valid'] = True
             else:
                 # ❌ Block if Fixture not found - redirect to manual login
-                print(f"❌ Fixture not found: {tooling_code} - redirecting to manual login")
+                log.error("Fixture not found: %s - redirecting to manual login", tooling_code)
                 QMessageBox.warning(
                     self.parent,
                     "Fixture ไม่พบในระบบ",
@@ -230,15 +233,15 @@ class LoginManager:
             # ========================================================
             # VERIFY OPERATOR
             # ========================================================
-            print(f"🔍 Verifying Operator: {operator_id}")
+            log.debug("Verifying Operator: %s", operator_id)
             is_operator_valid, operator_data = self.data_uploader.check_user_permission(operator_id)
             
             if is_operator_valid and operator_data:
-                print(f"✅ Operator valid: {operator_data.get('operator_name', '')}")
+                log.info("Operator valid: %s", operator_data.get('operator_name', ''))
                 lot_data['_operator_data'] = operator_data
             else:
                 # ❌ Block if Operator not found or not authorized - redirect to manual login
-                print(f"❌ Operator not authorized: {operator_id} - redirecting to manual login")
+                log.error("Operator not authorized: %s - redirecting to manual login", operator_id)
                 QMessageBox.warning(
                     self.parent,
                     "Operator ไม่ผ่านการตรวจสอบ",
@@ -338,12 +341,10 @@ class LoginManager:
                 'timestamp': start_time,
             }
             
-            print(f"✅ Lot data loaded: {self.product_info}")
-            logging.info(f"Loaded lot data for direct login: {self.product_info.get('lot_number')}")
+            log.info("Lot data loaded: %s", self.product_info)
             
         except Exception as e:
-            print(f"❌ Error loading lot data: {e}")
-            logging.error(f"Error loading lot data: {e}")
+            log.error("Error loading lot data: %s", e)
             raise
     
     def _format_product_code(self, product_code: str) -> str:
@@ -387,7 +388,7 @@ class LoginManager:
         try:
             # ตรวจสอบว่า fixture valid หรือไม่
             if not lot_data.get('is_fixture_valid', False):
-                print("⚠️ Fixture not validated - skipping server upload")
+                log.warning("Fixture not validated - skipping server upload")
                 return
             
             operator_data = lot_data.get('_operator_data', {}) or {}
@@ -416,20 +417,17 @@ class LoginManager:
                 'defects': {'SHORT': 0, 'OPEN': 0, 'BLKM': 0, 'MAT': 0, 'SHOT': 0}
             }
             
-            print(f"📤 Uploading to server: Lot={upload_data['lot_number']}, Product={upload_data['product_formatted']}")
+            log.info("Uploading to server: Lot=%s, Product=%s", upload_data['lot_number'], upload_data['product_formatted'])
             
             result = self.data_uploader.save_all_data(upload_data)
             
             if result.get('status') == 'success':
-                print("✅ Data uploaded to server successfully")
-                logging.info(f"Uploaded login data for lot: {upload_data['lot_number']}")
+                log.info("Data uploaded to server successfully")
             else:
-                print(f"⚠️ Upload failed: {result.get('message', 'Unknown error')}")
-                logging.warning(f"Failed to upload login data: {result.get('message')}")
+                log.warning("Upload failed: %s", result.get('message', 'Unknown error'))
                 
         except Exception as e:
-            print(f"❌ Error uploading to server: {e}")
-            logging.error(f"Error uploading to server: {e}")
+            log.error("Error uploading to server: %s", e)
 
     def _process_successful_login(self, login_dialog):
         logging.debug("Processing successful login")
@@ -452,7 +450,7 @@ class LoginManager:
         logging.debug(f"Lot number extracted: {lot_number}")
 
         lot_size_value = getattr(login_dialog, 'lot_size_value', None)
-        print(f"lot_size_value: {lot_size_value}")
+        log.debug("lot_size_value: %s", lot_size_value)
         if lot_size_value is not None:
             logging.debug(f"Lot size value obtained: {lot_size_value}")
             self.product_info['lot_size_value'] = lot_size_value

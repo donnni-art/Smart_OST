@@ -14,6 +14,9 @@ mock_database.py
 import sqlite3
 import threading
 from datetime import datetime
+from src.app_logger import get_logger
+
+log = get_logger("mock_db")
 
 # ─── shared in-memory databases ──────────────────────────────────────────────
 # remote แทน 10.17.86.154  (tooling_fix + design)

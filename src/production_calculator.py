@@ -27,6 +27,9 @@ from PySide6.QtCore import QObject, Signal, QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt
 import logging
+from src.app_logger import get_logger
+
+log = get_logger("prodcalc")
 
 class ProductionCalculator(QObject):
     production_rates_updated = Signal(dict)  # Signal to update UI with rates
@@ -338,11 +341,11 @@ class ProductionCalculator(QObject):
                 # ✅ ดึงค่าจำนวนแผ่นปัจจุบัน
                 current_sheet_count = plc_data.get('dm1923', 0)
                 
-                print(f"🔄 Calculation: current={current_sheet_count}, last={self.last_sheet_count}")
-                
+                log.debug("Calculation: current=%s, last=%s", current_sheet_count, self.last_sheet_count)
+
                 # ✅ คำนวณผลต่างที่แท้จริง
                 sheets_produced = current_sheet_count - self.last_sheet_count
-                print(f"📊 Sheets produced this cycle: {sheets_produced}")
+                log.debug("Sheets produced this cycle: %s", sheets_produced)
                 
                 # Calculate time elapsed (Incremental time)
                 # ✅ ใช้เวลาจากรอบที่แล้ว (3 วินาที) แทนเวลาทั้งหมด
@@ -417,25 +420,21 @@ class ProductionCalculator(QObject):
         current_time = time.time()
         elapsed = current_time - self.last_data_received if self.last_data_received else float('inf')
         
-        print(f"""
-    🎯 Production Calculator Debug Info:
-    ═══════════════════════════════════
-    📊 Current Rates:
-       • Sheets: {self.current_rates['sheets_per_hour']}/h
-       • PCS: {self.current_rates['pcs_per_hour']}/h  
-       • Shots: {self.current_rates['shots_per_hour']}/h
-    
-    ⚙️ Configuration:
-       • PCS per Shot: {config['pcs_per_shot']}
-       • Shots per Sheet: {config['shots_per_sheet']}
-       • PCS per Sheet: {config['pcs_per_sheet']}
-    
-    📈 Production Data:
-       • Last Sheet Count: {self.last_sheet_count}
-       • Total Sheets: {self.current_rates['total_sheets']}
-       • Last Data Received: {elapsed:.1f}s ago
-       • Timer Active: {'✅ Yes' if self.calc_timer.isActive() else '❌ No'}
-    """)
+        log.debug(
+            "Production Calculator Debug Info - sheets/h: %s, pcs/h: %s, shots/h: %s, "
+            "pcs_per_shot: %s, shots_per_sheet: %s, pcs_per_sheet: %s, "
+            "last_sheet_count: %s, total_sheets: %s, last_data_received: %.1fs ago, timer_active: %s",
+            self.current_rates['sheets_per_hour'],
+            self.current_rates['pcs_per_hour'],
+            self.current_rates['shots_per_hour'],
+            config['pcs_per_shot'],
+            config['shots_per_sheet'],
+            config['pcs_per_sheet'],
+            self.last_sheet_count,
+            self.current_rates['total_sheets'],
+            elapsed,
+            self.calc_timer.isActive(),
+        )
     
     def cleanup(self):
         """Cleanup resources"""

@@ -39,6 +39,10 @@ import os
 import json
 from datetime import datetime
 from src.config_manager import config_manager
+from src.app_logger import get_logger
+
+log = get_logger("heatmap")
+
 class HeatMapDefectPCS:
     def __init__(self, plc_window, parent_window=None):
         self.plc_window = plc_window
@@ -107,13 +111,13 @@ class HeatMapDefectPCS:
             product_name = product_data.get('product_name', 'Unknown')
             lot_number = product_data.get('lot_number', 'Unknown')
             
-            print(f"📥 HeatMapDefectPCS received product: {product_name}, lot: {lot_number}")
-            
+            log.info("HeatMapDefectPCS received product: %s, lot: %s", product_name, lot_number)
+
             # ✅ ตรวจสอบว่าเป็นผลิตภัณฑ์ใหม่หรือไม่
-            if (product_name != self.current_product_name or 
+            if (product_name != self.current_product_name or
                 lot_number != self.current_lot_number):
-                
-                print("🔄 New product/lot detected - resetting heatmap data")
+
+                log.debug("New product/lot detected - resetting heatmap data")
                 
                 # รีเซ็ตข้อมูล
                 self.result_all_by_pcs = {}
@@ -132,11 +136,11 @@ class HeatMapDefectPCS:
                 self.plot_stacked_bar_defects()
                 
             else:
-                print("ℹ️ Same product/lot - no reset needed")
-                
+                log.debug("Same product/lot - no reset needed")
+
         except Exception as e:
-            print(f"❌ Error in set_product_info: {e}")
-            
+            log.error("Error in set_product_info: %s", e)
+
     @Slot(dict)
     def set_product_info(self, product_data):
         """Slot สำหรับรับข้อมูลผลิตภัณฑ์จาก MainWindow"""
@@ -155,14 +159,11 @@ class HeatMapDefectPCS:
                 'operator_id': operator_id
             }
             
-            print(f"📥 HeatMapDefectPCS ได้รับข้อมูลผลิตภัณฑ์:")
-            print(f"   Product: {product_name}")
-            print(f"   Lot: {lot_number}")
-            print(f"   Tooling: {tooling_code}")
-            
+            log.info("HeatMapDefectPCS received product: %s, lot: %s, tooling: %s", product_name, lot_number, tooling_code)
+
             # ตรวจสอบว่าข้อมูลเปลี่ยนแปลงหรือไม่
             if self.has_product_changed(new_product_info):
-                print("🔄 ตรวจพบการเปลี่ยนแปลง Product/Lot")
+                log.debug("ตรวจพบการเปลี่ยนแปลง Product/Lot")
                 
                 # บันทึกข้อมูลเก่าก่อนเปลี่ยน (ถ้ามี)
                 if self.raw_data_records:
@@ -183,10 +184,10 @@ class HeatMapDefectPCS:
                 self.clear_heatmap()
                 self.plot_stacked_bar_defects()
             else:
-                print("ℹ️ ข้อมูลผลิตภัณฑ์เหมือนเดิม ไม่มีการเปลี่ยนแปลง")
-                
+                log.debug("ข้อมูลผลิตภัณฑ์เหมือนเดิม ไม่มีการเปลี่ยนแปลง")
+
         except Exception as e:
-            print(f"❌ ข้อผิดพลาดใน set_product_info: {e}")
+            log.error("ข้อผิดพลาดใน set_product_info: %s", e)
 
     def has_product_changed(self, new_info):
         """ตรวจสอบว่าข้อมูลผลิตภัณฑ์เปลี่ยนแปลงหรือไม่"""
@@ -212,7 +213,7 @@ class HeatMapDefectPCS:
             
             if not os.path.exists(self.current_data_folder):
                 os.makedirs(self.current_data_folder)
-                print(f"✅ สร้างโฟลเดอร์ใหม่: {self.current_data_folder}")
+                log.info("สร้างโฟลเดอร์ใหม่: %s", self.current_data_folder)
 
             # ชื่อไฟล์
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -234,13 +235,13 @@ class HeatMapDefectPCS:
             # บันทึก metadata
             self.save_metadata()
             
-            print(f"🎯 เริ่มบันทึกข้อมูลสำหรับ:")
-            print(f"   Product: {self.current_product_info['product_name']}")
-            print(f"   Lot: {self.current_product_info['lot_number']}")
-            print(f"   โฟลเดอร์: {self.current_data_folder}")
-            
+            log.info("เริ่มบันทึกข้อมูลสำหรับ product: %s, lot: %s, folder: %s",
+                     self.current_product_info['product_name'],
+                     self.current_product_info['lot_number'],
+                     self.current_data_folder)
+
         except Exception as e:
-            print(f"❌ ข้อผิดพลาดใน setup_product_based_logging: {e}")
+            log.error("ข้อผิดพลาดใน setup_product_based_logging: %s", e)
 
     def sanitize_filename(self, name):
         """ทำความสะอาดชื่อไฟล์"""
@@ -263,7 +264,7 @@ class HeatMapDefectPCS:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
                 
         except Exception as e:
-            print(f"❌ ไม่สามารถบันทึก metadata ได้: {e}")
+            log.error("ไม่สามารถบันทึก metadata ได้: %s", e)
 
     @Slot(dict)
     def handle_plc_data(self, data):
@@ -302,7 +303,7 @@ class HeatMapDefectPCS:
         """เพิ่มบันทึกข้อมูลดิบพร้อมข้อมูล product"""
         # ตรวจสอบอีกครั้งว่าข้อมูลผลิตภัณฑ์พร้อม
         if not self.is_product_info_ready or self.current_product_info is None:
-            print("⚠️  ระบบบันทึกข้อมูลยังไม่พร้อม ข้ามการบันทึก")
+            log.warning("ระบบบันทึกข้อมูลยังไม่พร้อม ข้ามการบันทึก")
             return
             
         timestamp = datetime.now()
@@ -358,7 +359,7 @@ class HeatMapDefectPCS:
                 # บันทึกลงไฟล์ทันที
                 self.append_to_raw_data_file(raw_record)
         
-        print(f"✅ บันทึกข้อมูลสำหรับ {self.current_product_info['product_name']} - Lot {self.current_product_info['lot_number']}")
+        log.info("บันทึกข้อมูลสำหรับ %s - Lot %s", self.current_product_info['product_name'], self.current_product_info['lot_number'])
 
     def append_to_raw_data_file(self, record):
         """เพิ่ม record ใหม่ลงไฟล์ CSV"""
@@ -368,20 +369,22 @@ class HeatMapDefectPCS:
             if not os.path.exists(self.raw_data_file):
                 # สร้างไฟล์ใหม่
                 df_record.to_csv(self.raw_data_file, index=False, encoding='utf-8-sig')
-                print(f"📁 สร้างไฟล์ใหม่: {os.path.basename(self.raw_data_file)}")
+                log.info("สร้างไฟล์ใหม่: %s", os.path.basename(self.raw_data_file))
             else:
                 # เพิ่มลงไฟล์ที่มีอยู่
                 df_record.to_csv(self.raw_data_file, mode='a', header=False, 
                                index=False, encoding='utf-8-sig')
                 
         except Exception as e:
-            print(f"❌ ไม่สามารถบันทึกข้อมูลดิบลงไฟล์ได้: {e}")
+            log.error("ไม่สามารถบันทึกข้อมูลดิบลงไฟล์ได้: %s", e)
 
     def finalize_current_batch(self):
         """บันทึกและปิด batch ปัจจุบันก่อนเปลี่ยน product/lot"""
         if self.raw_data_records:
-            print(f"💾 บันทึกข้อมูลสุดท้ายสำหรับ {self.current_product_info['product_name']} - {self.current_product_info['lot_number']}")
-            print(f"   จำนวน records: {len(self.raw_data_records)}")
+            log.info("บันทึกข้อมูลสุดท้ายสำหรับ %s - %s, จำนวน records: %d",
+                     self.current_product_info['product_name'],
+                     self.current_product_info['lot_number'],
+                     len(self.raw_data_records))
 
     @Slot()
     def _perform_throttled_update(self):
@@ -459,7 +462,7 @@ class HeatMapDefectPCS:
                 defect_details = self.extract_defect_counts(pcs_info['result'])
                 self.defect_data_for_heatmap[shot_name][pcs_name_full] = defect_details
         
-        print("Processed for Heatmap:", self.defect_data_for_heatmap)
+        log.debug("Processed for Heatmap: %s", self.defect_data_for_heatmap)
 
     def summary_result(self, shot_cnt):
         if shot_cnt == self.last_dm1923:
@@ -469,7 +472,7 @@ class HeatMapDefectPCS:
         
         # Reset data when shot_cnt is 0
         if shot_cnt == 0:
-            print(f"\n📌 [RESET] shot count: {shot_cnt} - Resetting data...")
+            log.debug("[RESET] shot count: %s - Resetting data...", shot_cnt)
             self.result_all_by_pcs = {}
             self.result_defect_only = {}
             self.defect_data_for_heatmap = {}
@@ -479,8 +482,7 @@ class HeatMapDefectPCS:
             self.plot_stacked_bar_defects()
             return
         
-        print(f"\n📌 [SHOT_CNT Changed]: {shot_cnt}")
-        print("🔄 สร้างสรุปผลรวม...")
+        log.debug("[SHOT_CNT Changed]: %s - สร้างสรุปผลรวม...", shot_cnt)
 
         # Process data only when shot_cnt is not 0
         for shot, pcs_dict in self.defect_data_for_heatmap.items():
@@ -507,13 +509,8 @@ class HeatMapDefectPCS:
 
         self.plot_stacked_bar_defects()
 
-        print("\n✅ [รวมทุกผล] result_all_by_pcs:")
-        for pcs, results in self.result_all_by_pcs.items():
-            print(f"{pcs}: {results}")
-
-        print("\n✅ [เฉพาะ defect] result_defect_only:")
-        for pcs, results in self.result_defect_only.items():
-            print(f"{pcs}: {results}")
+        log.debug("[รวมทุกผล] result_all_by_pcs: %s", self.result_all_by_pcs)
+        log.debug("[เฉพาะ defect] result_defect_only: %s", self.result_defect_only)
 
     def clear_heatmap(self):
         """ล้าง heatmap และแสดงพื้นหลังสีเทา"""
@@ -782,7 +779,7 @@ class HeatMapDefectPCS:
         try:
             df = self._prepare_heatmap_data()
             if df is None or df.empty:
-                print("[WARNING] No valid data for heatmap")
+                log.warning("No valid data for heatmap")
                 return
 
             pivot_df = df.pivot(index='shot', columns='pcs', values='Pass_Ratio')
@@ -806,9 +803,7 @@ class HeatMapDefectPCS:
             self.canvas.draw_idle()
 
         except Exception as e:
-            print(f"[ERROR] Failed to update heatmap: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            log.error("Failed to update heatmap: %s", e, exc_info=True)
 
     def _initialize_heatmap(self, pivot_df):
         self.figure.clf()
@@ -818,7 +813,7 @@ class HeatMapDefectPCS:
             try:
                 self.cbar.remove()
             except Exception as e:
-                print(f"[WARNING] Failed to remove colorbar: {e}")
+                log.warning("Failed to remove colorbar: %s", e)
             self.cbar = None
 
         if pivot_df.shape[0] < 2:
@@ -899,7 +894,7 @@ class HeatMapDefectPCS:
                 pass
 
         except Exception as e:
-            print(f"⚠️ HeatMapDefectPCS.stop() error: {e}")
+            log.warning("HeatMapDefectPCS.stop() error: %s", e)
             
     def _create_cmap(self):
         colors = [

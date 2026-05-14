@@ -30,6 +30,9 @@ Usage:
 import re
 import oracledb
 from src.config_manager import config_manager
+from src.app_logger import get_logger
+
+log = get_logger("lot_checker")
 
 
 class LotChecker:
@@ -50,7 +53,7 @@ class LotChecker:
                 try:
                     oracledb.init_oracle_client(lib_dir=oracle_path)
                 except Exception as e:
-                    print(f"⚠️ Oracle client init skipped: {e}")
+                    log.warning("Oracle client init skipped: %s", e)
         
     def _load_config(self) -> dict:
         """Load database configuration from config.json"""
@@ -59,7 +62,7 @@ class LotChecker:
             db_config = full_config.get('check_lot_database', {})
             
             if not db_config:
-                print("⚠️ LotChecker: 'check_lot_database' not found in config.json")
+                log.warning("LotChecker: 'check_lot_database' not found in config.json")
                 return {}
             
             # Oracle default port is 1521
@@ -73,7 +76,7 @@ class LotChecker:
                 'service_name': service_name,
             }
         except Exception as e:
-            print(f"❌ LotChecker: Error loading config: {e}")
+            log.error("LotChecker: Error loading config: %s", e)
             return {}
     
     def parse_scanned_input(self, scanned_input: str) -> dict:
@@ -129,12 +132,12 @@ class LotChecker:
                     'is_pos_format': True
                 }
                 
-                print(f"📦 Parsed POS format: Lot={lot_number}, WO={wo_number}, Product={product_formatted}")
+                log.debug("Parsed POS format: Lot=%s, WO=%s, Product=%s", lot_number, wo_number, product_formatted)
                 return self.parsed_data
             else:
                 # Incomplete POS format, use first part as lot number
                 lot_number = parts[0].strip()
-                print(f"⚠️ Incomplete POS format, using first part as Lot: {lot_number}")
+                log.warning("Incomplete POS format, using first part as Lot: %s", lot_number)
                 
                 self.parsed_data = {
                     'lot_number': lot_number,
@@ -153,7 +156,7 @@ class LotChecker:
                 'product_formatted': None,
                 'is_pos_format': False
             }
-            print(f"📦 Parsed plain Lot Number: {scanned_input}")
+            log.debug("Parsed plain Lot Number: %s", scanned_input)
             return self.parsed_data
     
     def _format_product_code(self, product_code: str) -> str:
@@ -191,7 +194,7 @@ class LotChecker:
         """
         try:
             if not self.config:
-                print("❌ LotChecker: No configuration available")
+                log.error("LotChecker: No configuration available")
                 return False
             
             # Clean config values
@@ -203,37 +206,35 @@ class LotChecker:
             
             # 1. Try "Easy Connect" format for Service Name: host:port/service_name
             dsn_service = f"{host}:{port}/{name}"
-            print(f"🔌 LotChecker: Connecting to {dsn_service} (Service Name mode)...")
+            log.info("LotChecker: Connecting to %s (Service Name mode)...", dsn_service)
 
             try:
                 self.connection = oracledb.connect(user=user, password=password, dsn=dsn_service)
-                print(f"✅ LotChecker: Connected!")
+                log.info("LotChecker: Connected!")
                 return True
             except oracledb.Error as e:
                 # If Service Name fails, try SID format: host:port:sid
                 # Note: 'DPY-6001' is 'ORA-12514' (Service missing)
                 #       'DPY-6005' can be generic connection failure but often implies name resolution
-                print(f"⚠️ Service Name connection failed ({e}). Retrying as SID...")
+                log.warning("Service Name connection failed (%s). Retrying as SID...", e)
                 
                 dsn_sid = oracledb.makedsn(host, port, sid=name)
-                print(f"🔌 LotChecker: Connecting to {host}:{port}:{name} (SID mode)...")
+                log.info("LotChecker: Connecting to %s:%s:%s (SID mode)...", host, port, name)
                 
                 try:
                     self.connection = oracledb.connect(user=user, password=password, dsn=dsn_sid)
-                    print(f"✅ LotChecker: Connected via SID!")
+                    log.info("LotChecker: Connected via SID!")
                     return True
                 except oracledb.Error as e_sid:
                     # Report the original error if SID also fails, or just the last one
-                    print(f"❌ LotChecker: SID connection also failed - {e_sid}")
-                    
-                    # Hint for user
+                    log.error("LotChecker: SID connection also failed - %s", e_sid)
                     if "DPY-6001" in str(e) or "ORA-12514" in str(e):
-                         print("💡 Tip: The database name seems incorrect. Please check 'service_name' in config.json")
+                        log.warning("LotChecker: The database name seems incorrect. Please check 'service_name' in config.json")
 
             self.connection = None
             
         except Exception as e:
-            print(f"❌ LotChecker: Unexpected error during connect - {e}")
+            log.error("LotChecker: Unexpected error during connect - %s", e)
             self.connection = None
             
         return False
@@ -243,7 +244,7 @@ class LotChecker:
         if self.connection:
             try:
                 self.connection.close()
-                print("✅ LotChecker: Disconnected")
+                log.info("LotChecker: Disconnected")
             except oracledb.Error:
                 pass
             self.connection = None
@@ -283,7 +284,7 @@ class LotChecker:
         # ─── mock mode ────────────────────────────────────────────────
         if config_manager.current_config.get('mock_mode', False):
             from src.mock_database import get_mock_oracle_connection
-            print(f"🟡 MOCK: LotChecker using mock Oracle data for lot '{lot_number}'")
+            log.info("MOCK: LotChecker using mock Oracle data for lot '%s'", lot_number)
             self.connection = get_mock_oracle_connection()
 
         # Try to connect if not already connected
@@ -332,7 +333,7 @@ class LotChecker:
                     AND ft.TTL_SCAN_STATION LIKE '%10.17.86%'
             """
             
-            print(f"🔍 LotChecker: Executing query for Lot {lot_number}")
+            log.debug("LotChecker: Executing query for Lot %s", lot_number)
             cursor.execute(query, lot_number=lot_number)
             
             # Fetch all rows
@@ -376,7 +377,7 @@ class LotChecker:
                 }
                 
         except oracledb.Error as e:
-            print(f"❌ LotChecker: Query error - {e}")
+            log.error("LotChecker: Query error - %s", e)
             return {
                 'status': 'ERROR',
                 'message': f'Database error: {e}',
@@ -426,7 +427,7 @@ class LotChecker:
         
         # Get the Process of the Fixture (e.g., FOST, FOST2)
         fixture_process = fixture_row.get('PROC_DISP', '').upper()
-        print(f"🔍 LotChecker: Fixture found at Process: {fixture_process}")
+        log.debug("LotChecker: Fixture found at Process: %s", fixture_process)
         
         # Step 2: Find OPERATOR row that matches the same PROC_DISP as Fixture
         for row in results:
@@ -436,14 +437,14 @@ class LotChecker:
                 row_process = row.get('PROC_DISP', '').upper()
                 if row_process == fixture_process:
                     operator_row = row
-                    print(f"✅ LotChecker: Matched Operator at same Process: {row_process}")
+                    log.info("LotChecker: Matched Operator at same Process: %s", row_process)
                     break
         
         # Fallback: If no matching process, use any Operator
         if not operator_row and all_operators:
             operator_row = all_operators[0]
             fallback_process = operator_row.get('PROC_DISP', '')
-            print(f"⚠️ LotChecker: No Operator at {fixture_process}, fallback to first Operator at {fallback_process}")
+            log.warning("LotChecker: No Operator at %s, fallback to first Operator at %s", fixture_process, fallback_process)
             
         if not operator_row:
             return {
@@ -467,7 +468,7 @@ class LotChecker:
             '_raw_operator': operator_row
         }
         
-        print(f"✅ LotChecker: Processed Data -> Product: {data['product_name']}, Tooling: {data['tooling_code']}, Operator: {data['operator_id']}")
+        log.info("LotChecker: Processed Data -> Product: %s, Tooling: %s, Operator: %s", data['product_name'], data['tooling_code'], data['operator_id'])
         
         return {
             'is_valid': True,

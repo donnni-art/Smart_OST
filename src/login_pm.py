@@ -4,12 +4,15 @@ from PySide6.QtWidgets import QDialog, QGraphicsDropShadowEffect
 from PySide6.QtGui import QColor, QPainter, QPixmap, QIcon, QMouseEvent, QCursor
 from PySide6.QtCore import Qt, QSize, Signal, QEasingCurve, QPoint, QTimer, QPropertyAnimation,QEvent
 
+from src.app_logger import get_logger
 from src.ui_LoginPM import Ui_PM_SYSTEM
 from src.ui_pm_popupScanRepair import Ui_Scanrepair  # ✅ Import popup UI
 from src.ui_pm_popupScanLeader import Ui_Scanleader 
 from Custom_Widgets import loadJsonStyle
 from src.custom_warning_dialog import CustomWarningDialog
 from src.data_upload import DataUploader
+
+log = get_logger("login_pm")
 
 class LeaderLoginDialog(QDialog):
     """Popup for scanning Leader ID (no database verification required)"""
@@ -80,7 +83,7 @@ class LeaderLoginDialog(QDialog):
 
     def update_theme(self):
         """Automatic theme update"""
-        print("🔄 LeaderLoginDialog: Theme update triggered.")
+        log.debug("LeaderLoginDialog: Theme update triggered.")
         
         # ✅ Load JSON style
         loadJsonStyle(self, self.ui, jsonFiles={"json-styles/dialog_style.json"})
@@ -94,7 +97,7 @@ class LeaderLoginDialog(QDialog):
     def update_all_icons(self):
         """Update icon colors to match Theme"""
         if not self.main_window or not hasattr(self.main_window, 'theme_settings'):
-            print("⚠️ LeaderLoginDialog: No theme settings found, using default colors")
+            log.warning("LeaderLoginDialog: No theme settings found, using default colors")
             theme_settings = {
                 "Icons-color": "#4A4A4A",
                 "Accent-color": "#26bae3"
@@ -116,7 +119,7 @@ class LeaderLoginDialog(QDialog):
         self._update_button_icon(self.ui.confirmID, ":/feather/icons/feather/check.png", icons_color)
         self._update_button_icon(self.ui.pushButton_D, ":/feather/icons/feather/x-circle.png", icons_color)
 
-        print(f"🎨 LeaderLoginDialog: Icons recolored -> {icons_color}")
+        log.debug("LeaderLoginDialog: Icons recolored -> %s", icons_color)
 
     def _update_button_icon(self, button, icon_path, color_hex):
         pixmap = self._create_colored_pixmap(icon_path, color_hex, QSize(20, 20))
@@ -127,7 +130,7 @@ class LeaderLoginDialog(QDialog):
         """Create QPixmap with recolored theme"""
         pixmap = QPixmap(icon_path)
         if pixmap.isNull():
-            print(f"⚠️ Missing icon resource: {icon_path}")
+            log.warning("Missing icon resource: %s", icon_path)
             return QPixmap()
 
         if size:
@@ -171,7 +174,7 @@ class LeaderLoginDialog(QDialog):
         self.leader_id = leader_id
         self.scanned_data = leader_id
         
-        print(f"✅ Leader information collected: {self.name_leader}, Position: {self.position_level}")
+        log.info("Leader information collected: %s, Position: %s", self.name_leader, self.position_level)
         
         # ✅ Show success message
         self._show_success_message()
@@ -320,7 +323,7 @@ class RepairLoginDialog(QDialog):
 
     def update_theme(self):
         """Automatic theme update"""
-        print("🔄 RepairLoginDialog: Theme update triggered.")
+        log.debug("RepairLoginDialog: Theme update triggered.")
         
         # ✅ Load JSON style same as LoginPM
         loadJsonStyle(self, self.ui, jsonFiles={"json-styles/dialog_style.json"})
@@ -334,7 +337,7 @@ class RepairLoginDialog(QDialog):
     def update_all_icons(self):
         """Update icon colors to match Theme"""
         if not self.main_window or not hasattr(self.main_window, 'theme_settings'):
-            print("⚠️ RepairLoginDialog: No theme settings found, using default colors")
+            log.warning("RepairLoginDialog: No theme settings found, using default colors")
             theme_settings = {
                 "Icons-color": "#4A4A4A",
                 "Accent-color": "#26bae3"
@@ -356,7 +359,7 @@ class RepairLoginDialog(QDialog):
         self._update_button_icon(self.ui.confirmID, ":/feather/icons/feather/check.png", icons_color)
         self._update_button_icon(self.ui.pushButton_D, ":/feather/icons/feather/x-circle.png", icons_color)
 
-        print(f"🎨 RepairLoginDialog: Icons recolored -> {icons_color}")
+        log.debug("RepairLoginDialog: Icons recolored -> %s", icons_color)
 
     def _update_button_icon(self, button, icon_path, color_hex):
         pixmap = self._create_colored_pixmap(icon_path, color_hex, QSize(20, 20))
@@ -367,7 +370,7 @@ class RepairLoginDialog(QDialog):
         """Create QPixmap with recolored theme"""
         pixmap = QPixmap(icon_path)
         if pixmap.isNull():
-            print(f"⚠️ Missing icon resource: {icon_path}")
+            log.warning("Missing icon resource: %s", icon_path)
             return QPixmap()
 
         if size:
@@ -396,19 +399,19 @@ class RepairLoginDialog(QDialog):
             return
 
         try:
-            print(f"🔍 Checking staff ID: {staff_id}")
+            log.debug("Checking staff ID: %s", staff_id)
             
             if hasattr(self.main_window, 'data_upload'):
                 data_upload_obj = self.main_window.data_upload
             else:
-                print("[ERROR] No data_upload available in parent")
+                log.error("No data_upload available in parent")
                 self._show_custom_warning("Database system not available", "System Error")
                 return
             
             # ✅ Call ID verification function
             is_allowed, staff_data = data_upload_obj.check_id_staff_employee(staff_id)
             
-            print(f"📊 Verification result - Allowed: {is_allowed}, Data: {staff_data}")
+            log.debug("Verification result - Allowed: %s, Data: %s", is_allowed, staff_data)
             
             if is_allowed and staff_data:
                 # ✅ Store verification data
@@ -417,7 +420,7 @@ class RepairLoginDialog(QDialog):
                 self.pm_time = staff_data.get('scan_time', '')
                 self.scanned_data = staff_id
                 
-                print(f"✅ Staff verified: {self.name_staff}, Date: {self.pm_date}, Time: {self.pm_time}")
+                log.info("Staff verified: %s, Date: %s, Time: %s", self.name_staff, self.pm_date, self.pm_time)
                 self.accept()
             else:
                 self._show_custom_warning(
@@ -427,34 +430,34 @@ class RepairLoginDialog(QDialog):
                 self.clear_scan()
                 
         except AttributeError as e:
-            print(f"❌ AttributeError in verify_repair_staff: {e}")
+            log.error("AttributeError in verify_repair_staff: %s", e)
             self._show_custom_warning("ID verification function not available", "System Error")
         except Exception as e:
-            print(f"❌ Unexpected error in verify_repair_staff: {e}")
+            log.error("Unexpected error in verify_repair_staff: %s", e)
             self._show_custom_warning("Error occurred during data verification", "System Error")
 
     def _validate_data_upload_connection(self):
         """Validate data_upload connection"""
         try:
             if not self.main_window:
-                print("❌ No main_window reference")
+                log.error("No main_window reference")
                 self._show_custom_warning("Cannot connect to main system", "System Error")
                 return False
 
             if not hasattr(self.main_window, 'data_upload'):
-                print("❌ main_window has no data_upload attribute")
+                log.error("main_window has no data_upload attribute")
                 self._show_custom_warning("Database system not available", "System Error")
                 return False
 
             if not self.main_window.data_upload:
-                print("❌ data_upload is None")
+                log.error("data_upload is None")
                 self._show_custom_warning("Database system is invalid", "System Error")
                 return False
 
             return True
             
         except Exception as e:
-            print(f"❌ Error validating data_upload connection: {e}")
+            log.error("Error validating data_upload connection: %s", e)
             self._show_custom_warning("Database connection issue", "System Error")
             return False
 
@@ -608,7 +611,7 @@ class LoginPM(QDialog):
     # 🎨 Load and update theme
     # ==========================================================
     def update_theme(self):
-        print("🔄 LoginPM: Theme update triggered.")
+        log.debug("LoginPM: Theme update triggered.")
         loadJsonStyle(self, self.ui, jsonFiles={"json-styles/dialog_style.json"})
 
         if not hasattr(self.main_window, "theme_settings") or not self.main_window.theme_settings:
@@ -623,7 +626,7 @@ class LoginPM(QDialog):
     def update_all_icons(self):
         """Update icon colors to match Theme"""
         if not self.main_window or not hasattr(self.main_window, 'theme_settings'):
-            print("⚠️ LoginPM: No theme settings found, using default colors")
+            log.warning("LoginPM: No theme settings found, using default colors")
             theme_settings = {
                 "Icons-color": "#4A4A4A",
                 "Background-color": "#FFFFFF"
@@ -662,7 +665,7 @@ class LoginPM(QDialog):
         
         self._update_button_icon(self.ui.pushButton_D, ":/feather/icons/feather/x-circle.png", icons_color)
 
-        print(f"🎨 LoginPM: Icons recolored -> {icons_color}")
+        log.debug("LoginPM: Icons recolored -> %s", icons_color)
 
     def show_close_warning(self):
         """Show warning message when Close button is pressed"""
@@ -679,7 +682,7 @@ class LoginPM(QDialog):
     def _on_close_warning_finished(self, result):
         """When user responds to warning popup"""
         if result == QDialog.Accepted:
-            print("🟡 User confirmed login reset")
+            log.info("User confirmed login reset")
             
             # ✅ Reset all login data
             self._reset_all_login_data()
@@ -687,13 +690,13 @@ class LoginPM(QDialog):
             # ✅ Update UI back to normal state
             self.update_all_icons()
             
-            print("✅ Login reset completed")
+            log.info("Login reset completed")
             
         else:
-            print("❌ User canceled reset")
+            log.info("User canceled reset")
     def _reset_all_login_data(self):
         """Reset all login data"""
-        print("🔄 Resetting all login data...")
+        log.debug("Resetting all login data...")
         
         # ✅ Reset login status
         self.repair_logged_in = False
@@ -733,7 +736,7 @@ class LoginPM(QDialog):
                 pass
             self.leader_dialog = None
         
-        print("✅ All login data reset completed")
+        log.info("All login data reset completed")
 
     def _safe_close(self):
         """Safely close window"""
@@ -744,37 +747,37 @@ class LoginPM(QDialog):
             self.reject()
             self.deleteLater()
         except Exception as e:
-            print(f"❌ Error closing window: {e}")
+            log.error("Error closing window: %s", e)
 
     def _restart_entire_application(self):
         """Restart the entire application"""
         try:
-            print("🔄 Restarting entire application...")
+            log.info("Restarting entire application...")
 
             # ✅ Find actual main.py file
             main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "main.py"))
             python = sys.executable
 
-            print(f"▶️ Launching new program: {python} {main_path}")
+            log.debug("Launching new program: %s %s", python, main_path)
 
             # ✅ Launch new program (main.py)
             started = QProcess.startDetached(python, [main_path])
 
             if started:
-                print("✅ New program started successfully - closing old program")
+                log.info("New program started successfully - closing old program")
                 # ✅ Close old event loop and process immediately
                 QCoreApplication.exit(0)
                 os._exit(0)
             else:
-                print("❌ Cannot start new program")
+                log.error("Cannot start new program")
 
         except Exception as e:
-            print(f"❌ Cannot restart application: {e}")
+            log.error("Cannot restart application: %s", e)
 
 
     def _close_and_restart(self):
         """Close LoginPM and send restart request signal"""
-        print("🔴 Closing system and returning to login...")
+        log.info("Closing system and returning to login...")
         
         try:
             # ✅ Send restart request signal first
@@ -793,14 +796,14 @@ class LoginPM(QDialog):
             QTimer.singleShot(50, self._safe_close)
                 
         except Exception as e:
-            print(f"❌ Error closing system: {e}")
+            log.error("Error closing system: %s", e)
             self._safe_close()
 
     def closeEvent(self, event):
         """
         This method runs when user clicks 'X' to close window
         """
-        print("[LoginPM] ⚠️ User closed window, sending restart request...")
+        log.warning("User closed window, sending restart request...")
         
         # Emit signal
         self.restart_requested.emit() 
@@ -814,7 +817,7 @@ class LoginPM(QDialog):
             self.reject()
             self.deleteLater()
         except Exception as e:
-            print(f"❌ Error closing window: {e}")
+            log.error("Error closing window: %s", e)
 
     def _restart_login_scan(self):
         """Restart system back to login screen"""
@@ -830,9 +833,9 @@ class LoginPM(QDialog):
             QTimer.singleShot(200, self._create_new_login_scan)
             
         except ImportError as e:
-            print(f"❌ login_scan module not found: {e}")
+            log.error("login_scan module not found: %s", e)
         except Exception as e:
-            print(f"❌ Error during restart: {e}")
+            log.error("Error during restart: %s", e)
 
     def _create_new_login_scan(self):
         """Create new Login Scan window"""
@@ -841,10 +844,10 @@ class LoginPM(QDialog):
             
             self.login_scan = MyWindow()
             self.login_scan.show()
-            print("✅ New Login Scan window opened successfully")
+            log.info("New Login Scan window opened successfully")
             
         except Exception as e:
-            print(f"❌ Cannot open new Login Scan: {e}")
+            log.error("Cannot open new Login Scan: %s", e)
 
     def set_leader_button_success(self):
         """Set leader button to show login success"""
@@ -909,7 +912,7 @@ class LoginPM(QDialog):
         """Create QPixmap with recolored theme"""
         pixmap = QPixmap(icon_path)
         if pixmap.isNull():
-            print(f"⚠️ Missing icon resource: {icon_path}")
+            log.warning("Missing icon resource: %s", icon_path)
             return QPixmap()
 
         if size:
@@ -954,10 +957,10 @@ class LoginPM(QDialog):
         # ✅ Set login success status
         self.login_successful = True
         
-        print(f"✅ PM Login successful - Sending data to PM Window:")
-        print(f"   - Staff: {self.repair_data['name_staff']}")
-        print(f"   - Leader: {self.leader_data['name_leader']}")
-        print(f"   - Date: {self.pm_date} Time: {self.pm_time}")
+        log.info("PM Login successful - Sending data to PM Window:")
+        log.info("  Staff: %s", self.repair_data['name_staff'])
+        log.info("  Leader: %s", self.leader_data['name_leader'])
+        log.info("  Date: %s Time: %s", self.pm_date, self.pm_time)
         
         # ✅ Close dialog and return to shot_counting
         self.accept()
@@ -979,7 +982,7 @@ class LoginPM(QDialog):
             result = self.repair_dialog.exec()
             
         except Exception as e:
-            print(f"❌ Error opening repair dialog: {e}")
+            log.error("Error opening repair dialog: %s", e)
             # Fallback: direct login if popup has issues
             self._setup_login_data("Repairing Staff")
 
@@ -1006,7 +1009,7 @@ class LoginPM(QDialog):
                 repair_data = self.repair_dialog.get_repair_data()
                 
                 if repair_data and repair_data['name_staff']:
-                    print(f"✅ Repair staff verified: {repair_data['name_staff']}")
+                    log.info("Repair staff verified: %s", repair_data['name_staff'])
                     
                     # ✅ Store repair data
                     self.repair_data = repair_data
@@ -1018,13 +1021,13 @@ class LoginPM(QDialog):
                     self._show_success_message(repair_data['name_staff'])
                     
                 else:
-                    print("❌ Repair login: No valid staff data")
-                    
+                    log.error("Repair login: No valid staff data")
+
             else:
-                print("❌ Repair login cancelled")
-                
+                log.info("Repair login cancelled")
+
         except Exception as e:
-            print(f"❌ Error in repair dialog finished: {e}")
+            log.error("Error in repair dialog finished: %s", e)
             # Fallback
             self._setup_login_data("Repairing Staff")
 
@@ -1041,7 +1044,7 @@ class LoginPM(QDialog):
 
     def on_leader_login_clicked(self):
         """Show popup for scanning Leader ID"""
-        print("👑 Opening Leader Login Dialog...")
+        log.debug("Opening Leader Login Dialog...")
         
         # ✅ If already logged in, show current status
         if self.leader_logged_in:
@@ -1058,7 +1061,7 @@ class LoginPM(QDialog):
             result = self.leader_dialog.exec()
             
         except Exception as e:
-            print(f"❌ Error opening leader dialog: {e}")
+            log.error("Error opening leader dialog: %s", e)
             # Fallback
             self._setup_login_data("Leader")
 
@@ -1085,7 +1088,7 @@ class LoginPM(QDialog):
                 leader_data = self.leader_dialog.get_leader_data()
                 
                 if leader_data and leader_data['name_leader']:
-                    print(f"✅ Leader verified: {leader_data['name_leader']}")
+                    log.info("Leader verified: %s", leader_data['name_leader'])
                     
                     # ✅ Store leader data
                     self.leader_data = leader_data
@@ -1095,13 +1098,13 @@ class LoginPM(QDialog):
                     
                     
                 else:
-                    print("❌ Leader login: No valid leader data")
-                    
+                    log.error("Leader login: No valid leader data")
+
             else:
-                print("❌ Leader login cancelled")
-                
+                log.info("Leader login cancelled")
+
         except Exception as e:
-            print(f"❌ Error in leader dialog finished: {e}")
+            log.error("Error in leader dialog finished: %s", e)
 
     def _show_leader_success_message(self, leader_name, position):
         """Show leader login success confirmation"""

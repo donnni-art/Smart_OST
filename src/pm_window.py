@@ -8,8 +8,11 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QTableWidgetItem
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
+from src.app_logger import get_logger
 from src.ui_PM import Ui_PM
 from src.config_manager import config_manager
+
+log = get_logger("pm_window")
 
 class Pmwindow(QMainWindow):
     def __init__(self, parent=None, login_data=None, file_path=None, shot_counter=None, is_manual=False):
@@ -99,15 +102,15 @@ class Pmwindow(QMainWindow):
             self.ui.lineEdit_15.textChanged.connect(self._collect_tab6_data)
 
             self._collect_all_tab_data()
-            print("[PM UI] ✅ Connected tab signals successfully")
+            log.info("Connected tab signals successfully")
 
         except Exception as e:
-            print(f"[PM UI] ❌ Error connecting signals: {e}")
+            log.error("Error connecting signals: %s", e)
 
     def _update_file_path(self, new_path):
         """อัปเดต file_path เมื่อ ShotCounter เปลี่ยน"""
         self.file_path = new_path
-        print(f"🔄 Pmwindow อัปเดต path เป็น: {new_path}")
+        log.info("Pmwindow อัปเดต path เป็น: %s", new_path)
     
     # ============================================================
     # ✅ เก็บข้อมูลจากแต่ละ Tab
@@ -121,7 +124,7 @@ class Pmwindow(QMainWindow):
             self._collect_tab5_data()
             self._collect_tab6_data()
         except Exception as e:
-            print(f"[PM UI] ❌ Error collecting all tab data: {e}")
+            log.error("Error collecting all tab data: %s", e)
 
     def _collect_tab1_data(self):
         self.tab_data["tab1"] = {
@@ -236,11 +239,11 @@ class Pmwindow(QMainWindow):
             self._collect_all_tab_data()
 
             if not self._is_all_tab_filled():
-                print("⚠️ ข้อมูลไม่ครบ ไม่สามารถบันทึกได้")
+                log.warning("ข้อมูลไม่ครบ ไม่สามารถบันทึกได้")
                 return
 
             if not self.file_path:
-                print("[PM UI] ❌ ไม่มี file_path")
+                log.error("ไม่มี file_path")
                 return
 
             # ดึงข้อมูล product_name จาก file_path
@@ -265,12 +268,12 @@ class Pmwindow(QMainWindow):
             new_path = os.path.join(product_complete_dir, new_excel_filename)
 
             if not os.path.exists(original_path):
-                print(f"[PM UI] ❌ ไม่พบไฟล์ Excel: {original_path}")
+                log.error("ไม่พบไฟล์ Excel: %s", original_path)
                 return
 
             # ✅ คัดลอกไฟล์จาก PM in Progress ไปยัง PM compleat
             shutil.copy(original_path, new_path)
-            print(f"[PM UI] 📄 สร้างไฟล์ใหม่สำหรับบันทึก PM: {new_path}")
+            log.info("สร้างไฟล์ใหม่สำหรับบันทึก PM: %s", new_path)
 
             wb = load_workbook(new_path)
             ws = wb.active
@@ -341,7 +344,7 @@ class Pmwindow(QMainWindow):
 
             # ✅ บันทึกไฟล์จริง
             wb.save(new_path)
-            print(f"[PM UI] 💾 บันทึกข้อมูล PM และชื่อผู้ตรวจสอบเรียบร้อยที่: {new_path}")
+            log.info("บันทึกข้อมูล PM และชื่อผู้ตรวจสอบเรียบร้อยที่: %s", new_path)
 
             # ✅ ✅ ✅ เพิ่มส่วนนี้: รีเซ็ตไฟล์ต้นฉบับและไฟล์นับ shot
             self._reset_after_pm_completion(original_path)
@@ -351,21 +354,21 @@ class Pmwindow(QMainWindow):
                 f"บันทึกข้อมูล PM เรียบร้อยที่:\n{new_excel_filename}\n\n"
                 f"ไฟล์ถูกบันทึกในโฟลเดอร์:\n{product_complete_dir}")
 
-            print("[PM UI] 🔒 ปิดหน้าต่าง PM และกลับสู่หน้าหลัก")
+            log.info("ปิดหน้าต่าง PM และกลับสู่หน้าหลัก")
             self.close()
 
         except Exception as e:
-            print(f"[PM UI] ❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล: {e}")
+            log.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล: %s", e)
             QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการบันทึก: {e}")
 
     def _reset_after_pm_completion(self, original_excel_path):
         """รีเซ็ตไฟล์หลังจากทำ PM เสร็จสิ้น"""
         try:
-            print("[PM UI] 🔄 เริ่มกระบวนการรีเซ็ตหลังทำ PM...")
+            log.info("เริ่มกระบวนการรีเซ็ตหลังทำ PM...")
             
             # ✅ ตรวจสอบว่า original_excel_path มีอยู่จริง
             if not os.path.exists(original_excel_path):
-                print(f"[PM UI] ⚠️ ไม่พบไฟล์ Excel ต้นฉบับ: {original_excel_path}")
+                log.warning("ไม่พบไฟล์ Excel ต้นฉบับ: %s", original_excel_path)
                 excel_reset_success = False
             else:
                 # 1. รีเซ็ตไฟล์ Excel ต้นฉบับ
@@ -375,23 +378,23 @@ class Pmwindow(QMainWindow):
             txt_reset_success = self._reset_shot_count_file()
             
             # 3. รีเซ็ตค่าใน memory ของ Shot Counter
-            print(f"[PM UI] กำลังรีเซ็ต memory... self.shot_counter = {self.shot_counter}")
+            log.debug("กำลังรีเซ็ต memory... self.shot_counter = %s", self.shot_counter)
             memory_reset_success = self._reset_shot_counter_memory()
             
             # ✅ อ่านค่าไฟล์ TXT หลังรีเซ็ตเพื่อยืนยัน
             if self.file_path and os.path.exists(self.file_path):
                 with open(self.file_path, "r") as f:
                     file_content = f.read().strip()
-                    print(f"[PM UI] ไฟล์ TXT หลังรีเซ็ต: '{file_content}'")
+                    log.debug("ไฟล์ TXT หลังรีเซ็ต: '%s'", file_content)
             
             # ✅ ตรวจสอบผลลัพธ์การรีเซ็ตทุกส่วน
             if excel_reset_success and txt_reset_success and memory_reset_success:
-                print("[PM UI] 🔄 รีเซ็ตไฟล์ Excel, TXT และ Memory เรียบร้อย")
+                log.info("รีเซ็ตไฟล์ Excel, TXT และ Memory เรียบร้อย")
             else:
-                print(f"[PM UI] ⚠️ การรีเซ็ตไฟล์มีบางอย่างผิดพลาด: excel={excel_reset_success}, txt={txt_reset_success}, memory={memory_reset_success}")
+                log.warning("การรีเซ็ตไฟล์มีบางอย่างผิดพลาด: excel=%s, txt=%s, memory=%s", excel_reset_success, txt_reset_success, memory_reset_success)
                 
         except Exception as e:
-            print(f"[PM UI] ❌ เกิดข้อผิดพลาดในการรีเซ็ตไฟล์: {e}")
+            log.error("เกิดข้อผิดพลาดในการรีเซ็ตไฟล์: %s", e)
             import traceback
             traceback.print_exc()
 
@@ -401,12 +404,12 @@ class Pmwindow(QMainWindow):
             # ✅ ใช้ shot_counter ที่ส่งผ่าน parameter โดยตรง
             if self.shot_counter is not None:
                 shot_counter = self.shot_counter
-                print(f"[PM UI] 🔄 รีเซ็ต Shot Counter โดยตรงจาก parameter")
+                log.debug("รีเซ็ต Shot Counter โดยตรงจาก parameter")
             elif hasattr(self.parent, 'shot_counter'):
                 shot_counter = self.parent.shot_counter
-                print(f"[PM UI] 🔄 รีเซ็ต Shot Counter ผ่าน parent")
+                log.debug("รีเซ็ต Shot Counter ผ่าน parent")
             else:
-                print("[PM UI] ❌ ไม่พบ shot_counter ใน parameter หรือ parent")
+                log.error("ไม่พบ shot_counter ใน parameter หรือ parent")
                 return False
 
             # ✅ รีเซ็ตค่าทั้งหมด
@@ -425,11 +428,11 @@ class Pmwindow(QMainWindow):
                 self.parent.ui.shot_cnt.setText("0")
                 self.parent.ui.shot_cnt.setStyleSheet("")  # ✅ คืนค่าสไตล์ปกติ
             
-            print(f"[PM UI] 🔄 รีเซ็ต Shot Counter memory เรียบร้อย: shot_count=0, last_total_sheet=0")
+            log.info("รีเซ็ต Shot Counter memory เรียบร้อย: shot_count=0, last_total_sheet=0")
             return True
             
         except Exception as e:
-            print(f"[PM UI] ❌ ไม่สามารถรีเซ็ต Shot Counter memory: {e}")
+            log.error("ไม่สามารถรีเซ็ต Shot Counter memory: %s", e)
             return False
 
     def _reset_original_excel_file(self, original_excel_path):
@@ -440,30 +443,30 @@ class Pmwindow(QMainWindow):
             
             # ตรวจสอบว่า template_dir มีอยู่จริง
             if not os.path.exists(template_dir):
-                print(f"[PM UI] ❌ ไม่พบโฟลเดอร์ template: {template_dir}")
+                log.error("ไม่พบโฟลเดอร์ template: %s", template_dir)
                 return False
                 
             template_files = [f for f in os.listdir(template_dir) if f.lower().endswith(".xlsx")]
             
             if not template_files:
-                print(f"[PM UI] ❌ ไม่พบไฟล์ template ในโฟลเดอร์: {template_dir}")
+                log.error("ไม่พบไฟล์ template ในโฟลเดอร์: %s", template_dir)
                 return False
                 
             template_path = os.path.join(template_dir, template_files[0])
             
             # ตรวจสอบว่า template file มีอยู่จริง
             if not os.path.exists(template_path):
-                print(f"[PM UI] ❌ ไม่พบไฟล์ template: {template_path}")
+                log.error("ไม่พบไฟล์ template: %s", template_path)
                 return False
             
             # คัดลอก template ไปทับไฟล์เดิม
             shutil.copy(template_path, original_excel_path)
-            print(f"[PM UI] 🔄 รีเซ็ตไฟล์ Excel เดิมเรียบร้อย: {original_excel_path}")
+            log.info("รีเซ็ตไฟล์ Excel เดิมเรียบร้อย: %s", original_excel_path)
             
             return True  # ✅ return True เมื่อสำเร็จ
             
         except Exception as e:
-            print(f"[PM UI] ❌ เกิดข้อผิดพลาดในการรีเซ็ตไฟล์ Excel: {e}")
+            log.error("เกิดข้อผิดพลาดในการรีเซ็ตไฟล์ Excel: %s", e)
             import traceback
             traceback.print_exc()
             return False
@@ -474,14 +477,14 @@ class Pmwindow(QMainWindow):
             if self.file_path and os.path.exists(self.file_path):
                 with open(self.file_path, "w") as f:
                     f.write("0\n")
-                print(f"[PM UI] 🔄 รีเซ็ตไฟล์ TXT เรียบร้อย: {self.file_path}")
+                log.info("รีเซ็ตไฟล์ TXT เรียบร้อย: %s", self.file_path)
                 return True  # ✅ return True เมื่อสำเร็จ
             else:
-                print(f"[PM UI] ⚠️ ไม่พบไฟล์ TXT ที่จะรีเซ็ต: {self.file_path}")
+                log.warning("ไม่พบไฟล์ TXT ที่จะรีเซ็ต: %s", self.file_path)
                 return False
                 
         except Exception as e:
-            print(f"[PM UI] ❌ เกิดข้อผิดพลาดในการรีเซ็ตไฟล์ TXT: {e}")
+            log.error("เกิดข้อผิดพลาดในการรีเซ็ตไฟล์ TXT: %s", e)
             return False
 
     # ============================================================
@@ -512,10 +515,10 @@ class Pmwindow(QMainWindow):
                 "leader_name": leader_name,
             }
 
-            print(f"[PM UI] ✅ Display login info: {staff_name} / {leader_name}")
+            log.info("Display login info: %s / %s", staff_name, leader_name)
 
         except Exception as e:
-            print(f"[PM UI] ❌ Display login info error: {e}")
+            log.error("Display login info error: %s", e)
 
     def set_excel_data(self, excel_data):
         """ตั้งค่าข้อมูลจาก Excel ให้กับ UI"""
@@ -559,17 +562,17 @@ class Pmwindow(QMainWindow):
                 self.ui.lineEdit.setText(data_dict['product_name'])
                 self.ui.lineEdit.setReadOnly(True)
                 self.ui.lineEdit.setStyleSheet("background-color: #f0f0f0;")
-                print(f"📦 Product: {data_dict['product_name']}")
+                log.debug("Product: %s", data_dict['product_name'])
             else:
-                print("⚠️ ไม่พบข้อมูล Product name")
+                log.warning("ไม่พบข้อมูล Product name")
             
             if 'tooling_code' in data_dict:
                 self.ui.lineEdit_2.setText(data_dict['tooling_code'])
                 self.ui.lineEdit_2.setReadOnly(True)
                 self.ui.lineEdit_2.setStyleSheet("background-color: #f0f0f0;")
-                print(f"🔧 Tooling: {data_dict['tooling_code']}")
+                log.debug("Tooling: %s", data_dict['tooling_code'])
             else:
-                print("⚠️ ไม่พบข้อมูล Tooling code")
+                log.warning("ไม่พบข้อมูล Tooling code")
             
             if 'tooling_for' in data_dict:
                 tooling_for = data_dict['tooling_for']
@@ -578,37 +581,36 @@ class Pmwindow(QMainWindow):
                     self.ui.smt.setChecked(False)
                     self.ui.efpc.setEnabled(False)
                     self.ui.smt.setEnabled(False)
-                    print("🏷️ Tooling for: E-FPC")
+                    log.debug("Tooling for: E-FPC")
                 elif tooling_for.upper() == 'SMT':
                     self.ui.smt.setChecked(True)
                     self.ui.efpc.setChecked(False)
                     self.ui.efpc.setEnabled(False)
                     self.ui.smt.setEnabled(False)
-                    print("🏷️ Tooling for: SMT")
+                    log.debug("Tooling for: SMT")
                 else:
-                    print(f"⚠️ ไม่รู้จัก Tooling for: {tooling_for}")
+                    log.warning("ไม่รู้จัก Tooling for: %s", tooling_for)
             else:
-                print("⚠️ ไม่พบข้อมูล Tooling for")
+                log.warning("ไม่พบข้อมูล Tooling for")
             
             if 'next_pm' in data_dict:
                 next_pm_value = data_dict['next_pm']
                 self.ui.lineEdit_3.setText(next_pm_value)
                 self.ui.lineEdit_3.setReadOnly(True)
                 self.ui.lineEdit_3.setStyleSheet("background-color: #f0f0f0;")
-                print(f"⏭️ Next PM: {next_pm_value}")
+                log.debug("Next PM: %s", next_pm_value)
                 
                 # 🔥 ล้างสีเดิมและเติมสีใหม่
                 self._clear_table_highlight()
                 self._highlight_table_by_next_pm(next_pm_value)
             else:
-                print("⚠️ ไม่พบข้อมูล Next PM")
-                
-            print(f"✅ แยกข้อมูลจาก B3 สำเร็จ")
-            
+                log.warning("ไม่พบข้อมูล Next PM")
+
+            log.info("แยกข้อมูลจาก B3 สำเร็จ")
+
         except Exception as e:
-            print(f"❌ เกิดข้อผิดพลาดในการแยกข้อมูลจาก B3: {e}")
-            # แสดงข้อความ row_3b_text เพื่อ debugging
-            print(f"📄 ข้อความที่กำลังแยก: {row_3b_text}")
+            log.error("เกิดข้อผิดพลาดในการแยกข้อมูลจาก B3: %s", e)
+            log.debug("ข้อความที่กำลังแยก: %s", row_3b_text)
 
     def _highlight_table_by_next_pm(self, next_pm_text):
         """
@@ -627,20 +629,20 @@ class Pmwindow(QMainWindow):
                 try:
                     pm_numbers = [int(part.strip()) for part in parts if part.strip().isdigit()]
                 except ValueError:
-                    print(f"⚠️ ไม่สามารถแปลงค่า Next PM เป็นตัวเลข: {next_pm_text}")
+                    log.warning("ไม่สามารถแปลงค่า Next PM เป็นตัวเลข: %s", next_pm_text)
                     return
             else:
                 try:
                     pm_numbers = [int(next_pm_text.strip())]
                 except ValueError:
-                    print(f"⚠️ ไม่สามารถแปลงค่า Next PM เป็นตัวเลข: {next_pm_text}")
+                    log.warning("ไม่สามารถแปลงค่า Next PM เป็นตัวเลข: %s", next_pm_text)
                     return
-            
+
             if not pm_numbers:
-                print("⚠️ ไม่พบตัวเลขในค่า Next PM")
+                log.warning("ไม่พบตัวเลขในค่า Next PM")
                 return
-            
-            print(f"🎨 เติมสีตารางสำหรับตัวเลข: {pm_numbers}")
+
+            log.debug("เติมสีตารางสำหรับตัวเลข: %s", pm_numbers)
             
             # สีสำหรับการเน้น (สีเหลืองสำหรับตัวเลขแรก, สีแดงสำหรับตัวเลขที่สอง)
             colors = ["#FFFF00", "#FF0000"]  # สีเหลือง, สีแดง
@@ -684,14 +686,14 @@ class Pmwindow(QMainWindow):
                     item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                     
                     found_count += 1
-                    print(f"✅ เติมสีเซลล์ ({row}, {col}) สำหรับหมายเลข {pm_num} ด้วยสี {colors[color_index]}")
+                    log.debug("เติมสีเซลล์ (%s, %s) สำหรับหมายเลข %s ด้วยสี %s", row, col, pm_num, colors[color_index])
                 else:
-                    print(f"⚠️ ตำแหน่ง ({row}, {col}) สำหรับหมายเลข {pm_num} อยู่นอกขอบเขตตาราง")
-            
-            print(f"🎯 เติมสี {found_count} เซลล์จาก {len(pm_numbers)} ตัวเลขที่ต้องการ")
-                
+                    log.warning("ตำแหน่ง (%s, %s) สำหรับหมายเลข %s อยู่นอกขอบเขตตาราง", row, col, pm_num)
+
+            log.debug("เติมสี %s เซลล์จาก %s ตัวเลขที่ต้องการ", found_count, len(pm_numbers))
+
         except Exception as e:
-            print(f"❌ เกิดข้อผิดพลาดในการเติมสีตาราง: {e}")
+            log.error("เกิดข้อผิดพลาดในการเติมสีตาราง: %s", e)
 
     def _clear_table_highlight(self):
         """ล้างสีทั้งหมดในตาราง"""
@@ -706,6 +708,6 @@ class Pmwindow(QMainWindow):
                         font = item.font()
                         font.setBold(False)
                         item.setFont(font)
-            print("🧹 ล้างสีตารางเรียบร้อย")
+            log.debug("ล้างสีตารางเรียบร้อย")
         except Exception as e:
-            print(f"⚠️ ไม่สามารถล้างสีตาราง: {e}")
+            log.warning("ไม่สามารถล้างสีตาราง: %s", e)

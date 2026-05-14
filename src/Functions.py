@@ -11,6 +11,9 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from src.config_manager import config_manager
 from src.config_dialog import ConfigDialog
 from PySide6.QtWidgets import QDialog, QMessageBox
+from src.app_logger import get_logger
+
+log = get_logger("functions")
 
 class GuiFunctions():
     def __init__(self, MainWindow):
@@ -83,7 +86,7 @@ class GuiFunctions():
         if hasattr(self.ui, 'communication'):
             self.ui.communication.clicked.connect(self.show_config_dialog)
         else:
-            print("Warning: communicationBtn not found in UI")
+            log.warning("communicationBtn not found in UI")
 
     def show_config_dialog(self):
         """Show configuration dialog"""
@@ -117,7 +120,7 @@ class GuiFunctions():
             self.main.setFont(current_font)
             
         except Exception as e:
-            print(f"Error applying UI config: {e}")
+            log.error("Error applying UI config: %s", e)
 
     #######################################################################################################
 
@@ -202,14 +205,14 @@ class GuiFunctions():
             # ✅ ส่วนนี้คือหัวใจสำคัญที่ส่งสัญญาณออกไป
             if hasattr(self.main, "theme_changed"):
                 self.main.theme_changed.emit()
-                print("✅ Theme changed signal emitted to all dialogs")
+                log.info("Theme changed signal emitted to all dialogs")
 
     def LoadProductSansFont(self):
         """Load and apply product sans font"""
         font_id = QFontDatabase.addApplicationFont("./fonts/google-sans-cufonfonts/ProductSans-Regular.ttf")
 
         if font_id == -1:
-            print("Failed to load product font")
+            log.warning("Failed to load product font")
             return
 
         font_family = QFontDatabase.applicationFontFamilies(font_id)

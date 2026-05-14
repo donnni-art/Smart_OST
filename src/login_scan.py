@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QLabel, QComboBox, QPushBu
                                QVBoxLayout, QFileDialog, QRadioButton, QDialogButtonBox, QMessageBox)
 from PySide6.QtCore import Qt, QEvent, Signal
 from PySide6.QtGui import QKeyEvent, QIcon
+from src.app_logger import get_logger
 from src.data_upload import DataUploader
 from src.PLCdata import PLCWindow
 from src.ui_Demo2 import *
@@ -16,6 +17,8 @@ from src.config_manager import config_manager
 from src.database_manager import database_manager
 from PySide6.QtWidgets import (QApplication, QDialog, QLabel, QComboBox, QPushButton, QLineEdit,
                                QVBoxLayout, QRadioButton, QDialogButtonBox, QMessageBox, QHBoxLayout, QButtonGroup)
+
+log = get_logger("login_scan")
 
 #################################################
 # POPUP SCAN OPERATOR
@@ -179,9 +182,9 @@ class MyWindow(QDialog):
         try:
             self.plc_window = plc_window
             self.plc_window.hide()
-            print("PLCWindow setup completed")
+            log.info("PLCWindow setup completed")
         except Exception as e:
-            print(f"Error setting up PLCWindow: {e}")
+            log.error("Error setting up PLCWindow: %s", e)
             self.plc_window = None
 
         # ตัวแปรเก็บสถานะล็อกอิน
@@ -257,7 +260,7 @@ class MyWindow(QDialog):
         self.rb_fa = self.findChild(QRadioButton, 'fa')
         
         if not self.rb_mass or not self.rb_fa:
-            print("❌ Error: Could not find 'mass' or 'fa' radio buttons in UI")
+            log.error("Could not find 'mass' or 'fa' radio buttons in UI")
             return
 
         # Grouping
@@ -283,7 +286,7 @@ class MyWindow(QDialog):
         else:
             self.rb_mass.setChecked(True)
             
-        print(f"Login mode initialized to: {self.current_mode}")
+        log.info("Login mode initialized to: %s", self.current_mode)
         
     def handle_mode_change(self, button, checked):
         """Handle switching between Mass and FA modes"""
@@ -294,7 +297,7 @@ class MyWindow(QDialog):
         # The button text might be "M." or "F.", so better check objectName
         mode = "mass" if button.objectName() == "mass" else "fa"
         
-        print(f"🔄 Switching login mode to: {mode}")
+        log.info("Switching login mode to: %s", mode)
         
         self.current_mode = mode
         
@@ -322,7 +325,7 @@ class MyWindow(QDialog):
              current_text = self.scanFixture.text()
              if ":" in current_text:
                  fixture_code = current_text.split(":")[1].strip()
-                 print(f"🔄 Re-validating fixture: {fixture_code}")
+                 log.debug("Re-validating fixture: %s", fixture_code)
                  
                  # Re-run validation logic
                  if hasattr(self, 'product_formatted'):
@@ -338,11 +341,11 @@ class MyWindow(QDialog):
                               # For now, assume data_upload handles normalization or we might need adjustment
                               pass
                               
-                         print(f"ost_from_data_base : {self.ost_from_data_base}")
+                         log.debug("ost_from_data_base : %s", self.ost_from_data_base)
                          fpc_pd_name = fixture_data.get("fpc_pd_name", "")
-    
+
                          if self.data_upload.is_product_matching(self.product_formatted1, fpc_pd_name):
-                             print("✅ Product matches database (Re-check)")
+                             log.info("Product matches database (Re-check)")
                              self.is_fixture_valid = True
                              self.LineLabelscanFixture.setText("✅ Fixture Code is valid")
                              self.LineLabelscanFixture.setStyleSheet("color: green; font-weight: bold;")
@@ -363,9 +366,9 @@ class MyWindow(QDialog):
         # เช็กว่าค่าเป็นตัวเลขหรือไม่
         if text.isdigit():
             self.lot_size_value = int(text)
-            print(f"Lot size set to {self.lot_size_value}")
+            log.debug("Lot size set to %s", self.lot_size_value)
         else:
-            print("Invalid input, not a number")
+            log.warning("Invalid input, not a number")
             self.lot_size_value = None
         self.update_save_button_status() 
 
@@ -373,7 +376,7 @@ class MyWindow(QDialog):
     
     # POS SCAN FUNCTIONS
     def open_popup_scan_POS(self):
-        print("Opening POS scan popup")
+        log.debug("Opening POS scan popup")
         try:
             popupScan = ScanPOS(self)
             if popupScan.exec() == QDialog.Accepted:
@@ -393,7 +396,7 @@ class MyWindow(QDialog):
                 self.product_formatted = self.format_product_code(self.product_code)
                 self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 self.update_save_button_status()
-                print(f"lot: {self.lot_number}")
+                log.debug("lot: %s", self.lot_number)
 
                 product_name, error = self.data_upload.get_product_name_by_lot(self.lot_number)
                 if error:
@@ -403,7 +406,7 @@ class MyWindow(QDialog):
                     self.LineLabelPOS.setText("✅ Saved successfully")
                     self.LineLabelPOS.setStyleSheet("color: green; font-weight: bold;")
         except Exception as e:
-            print(f"Error in open_popup_scan_POS: {e}")
+            log.error("Error in open_popup_scan_POS: %s", e)
 
     def parse_scanned_data(self, scanned_str):
         # ตรวจสอบว่าข้อมูลที่ได้รับมีตัวแบ่ง (;) หรือไม่
@@ -515,12 +518,12 @@ class MyWindow(QDialog):
                 if fixture_data:
                     self.matched_tooling = fixture_data['fpc_code']
                     self.ost_from_data_base = fixture_data.get("use_for")
-                    print(f"ost_from_data_base : {self.ost_from_data_base}")
+                    log.debug("ost_from_data_base : %s", self.ost_from_data_base)
                     fpc_pd_name = fixture_data.get("fpc_pd_name", "")
                     self.matched_product_name = fpc_pd_name # Store for FOST validation
 
                     if self.data_upload.is_product_matching(self.product_formatted1, fpc_pd_name):
-                        print("✅ Product matches database")
+                        log.info("Product matches database")
                         self.is_fixture_valid = True
                         self.LineLabelscanFixture.setText("✅ Fixture Code is valid")
                         self.LineLabelscanFixture.setStyleSheet("color: green; font-weight: bold;")
@@ -543,7 +546,7 @@ class MyWindow(QDialog):
             return
 
         if not getattr(self, 'is_fixture_valid', False):
-            print("🚫 Cannot confirm OST - Fixture is invalid")
+            log.warning("Cannot confirm OST - Fixture is invalid")
             self.LineLabelscanFixture.setText("❌ Please scan a valid Fixture before selecting OST")
             self.LineLabelscanFixture.setStyleSheet("color: red; font-weight: bold;")
             sender.setChecked(False)
@@ -554,14 +557,14 @@ class MyWindow(QDialog):
 
     def confirm_ost_selection(self, selected_rb):
         clicked_OST = selected_rb.objectName()
-        print(f"🔘 Checking: {clicked_OST}")
+        log.debug("Checking: %s", clicked_OST)
         
         # Store selected OST for saving
         self.selected_ost_type = clicked_OST
 
         # FA Mode: Allow any selection because FA database lacks FOST data
         if getattr(self, 'current_mode', 'mass') == 'fa':
-            print("ℹ️ FA Mode detected - Allowing user FOST selection")
+            log.info("FA Mode detected - Allowing user FOST selection")
             self.show_ost_status(True, clicked_OST)
             return
 
@@ -572,7 +575,7 @@ class MyWindow(QDialog):
             # Allow FOST or FOST2 or FOST3 if the product matches "CAW-076W" regardless of strict DB assignment
             is_special_case = False
             if hasattr(self, 'matched_product_name') and "CAW-076W" in self.matched_product_name:
-                print("ℹ️ Special Case Detected: CAW-076W - Allowing FOST/FOST2/FOST3 selection")
+                log.info("Special Case Detected: CAW-076W - Allowing FOST/FOST2/FOST3 selection")
                 if clicked_OST in ["FOST", "FOST2", "FOST3"]:
                     is_special_case = True
 
@@ -584,7 +587,7 @@ class MyWindow(QDialog):
             else:
                 self.show_ost_status(False)
         else:
-            print("⚠️ Database data not loaded")
+            log.warning("Database data not loaded")
             self.show_ost_status(False)
 
     def show_ost_status(self, is_valid, ost_name=""):
@@ -660,7 +663,7 @@ class MyWindow(QDialog):
         
         # ปิดปุ่ม Save จนกว่าจะกรอกข้อมูลใหม่
         self.save_button.setEnabled(False)
-        print("System reset for new entry")
+        log.info("System reset for new entry")
 
     def reset_function(self):
         # รีเซ็ตช่องกรอก POS
@@ -719,7 +722,7 @@ class MyWindow(QDialog):
 
         # ตรวจสอบว่าได้ข้อมูลจาก PLC หรือไม่ (ถ้าไม่มีให้ดึงข้อมูลใหม่)
         if not plc_data:
-            print("No recent PLC data found, fetching new data")
+            log.debug("No recent PLC data found, fetching new data")
             plc_data = self.plc_window.get_updated_values()  # ดึงข้อมูลใหม่จาก PLC
 
         # ตรวจสอบว่าได้ข้อมูลจาก PLC หรือไม่
@@ -757,9 +760,9 @@ class MyWindow(QDialog):
                 'SHOT': plc_data.get('dm1913', 0),
             }
         }
-        print("DEBUG: Calling save_all_data with data:", data_to_save)
+        log.debug("Calling save_all_data with data: %s", data_to_save)
         result = self.data_upload.save_all_data(data_to_save)
-        print("DEBUG: Result from save_all_data:", result)
+        log.debug("Result from save_all_data: %s", result)
 
         if not result or not isinstance(result, dict):
             self._update_status_label("❌ Unknown error occurred", "red")
@@ -800,7 +803,7 @@ class MyWindow(QDialog):
                 "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         except Exception as e:
-            print(f"Error in get_product_scan: {str(e)}")
+            log.error("Error in get_product_scan: %s", str(e))
             return {
                 "error": True,
                 "message": str(e)

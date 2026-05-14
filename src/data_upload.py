@@ -29,6 +29,9 @@ from datetime import datetime
 import logging
 from src.config_manager import config_manager
 from src.database_manager import database_manager  # ✅ เพิ่ม import DatabaseManager
+from src.app_logger import get_logger
+
+log = get_logger("data_upload")
 
 class DataUploader:
     def __init__(self):
@@ -70,7 +73,7 @@ class DataUploader:
                 return None, None
 
         except Exception as e:
-            print(f"❌ Query error: {e}")
+            log.error("Query error: %s", e)
             return None, f"❌ เกิดข้อผิดพลาด: {str(e)}"
     
     def check_user_permission(self, user_id):
@@ -208,17 +211,17 @@ class DataUploader:
     def is_product_matching(self, product_code, fpc_pd_name_from_db):
         """ตรวจสอบว่า product_code ตรงกับ fpc_pd_name หรือไม่"""
         if not product_code or not fpc_pd_name_from_db:
-            print(f"❌ Missing data - product_code: {product_code}, fpc_pd_name: {fpc_pd_name_from_db}")
+            log.error("Missing data - product_code: %s, fpc_pd_name: %s", product_code, fpc_pd_name_from_db)
             return False
 
         product_clean = product_code.replace('\u200c', '').strip().upper()
         fpc_pd_clean = fpc_pd_name_from_db.replace('\u200c', '').strip()
 
-        print(f"🔍 Product Matching Debug:")
-        print(f"   Original product_code: {repr(product_code)}")
-        print(f"   Cleaned product_code: {product_clean}")
-        print(f"   Original fpc_pd_name: {repr(fpc_pd_name_from_db)}")
-        print(f"   Cleaned fpc_pd_name: {fpc_pd_clean}")
+        log.debug("Product Matching Debug:")
+        log.debug("   Original product_code: %r", product_code)
+        log.debug("   Cleaned product_code: %s", product_clean)
+        log.debug("   Original fpc_pd_name: %r", fpc_pd_name_from_db)
+        log.debug("   Cleaned fpc_pd_name: %s", fpc_pd_clean)
 
         if "-" in product_clean:
             base_part, suffix_part = product_clean.rsplit("-", 1)
@@ -226,13 +229,13 @@ class DataUploader:
             base_part = product_clean
             suffix_part = ""
 
-        print(f"   Suffix part: {suffix_part}")
+        log.debug("   Suffix part: %s", suffix_part)
 
         # Handle multiple separators (comma or slash)
         # Replace '/' with ',' to handle "SYC-476W / SYC-480W" format
         fpc_pd_normalized = fpc_pd_clean.replace('/', ',')
         fpc_pd_list = [item.strip().upper() for item in fpc_pd_normalized.split(",")]
-        print(f"   FPC PD List: {fpc_pd_list}")
+        log.debug("   FPC PD List: %s", fpc_pd_list)
 
         full_candidates = []
         for part in fpc_pd_list:
@@ -241,8 +244,8 @@ class DataUploader:
             else:
                 full_candidates.append(f"{base_part}-{part}")
 
-        print(f"   Full candidates: {full_candidates}")
-        print(f"   Checking if '{product_clean}' matches any candidate in {full_candidates}")
+        log.debug("   Full candidates: %s", full_candidates)
+        log.debug("   Checking if '%s' matches any candidate in %s", product_clean, full_candidates)
         
         # Check for exact match or prefix match
         result = False
@@ -261,7 +264,7 @@ class DataUploader:
                 result = True
                 break
                 
-        print(f"   Result: {'✅ MATCH' if result else '❌ NO MATCH'}")
+        log.debug("   Result: %s", 'MATCH' if result else 'NO MATCH')
         
         logging.debug(f"Checking product {product_clean} against: {full_candidates} -> {result}")
         return result

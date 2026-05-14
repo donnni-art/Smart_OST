@@ -1,5 +1,9 @@
 from src.PLCdata import PLCWindow
 import logging
+from src.app_logger import get_logger
+
+log = get_logger("update_mgr")
+
 class update_sever:
     def __init__(self, plc_window, parent=None):
         self.parent = parent
@@ -62,10 +66,10 @@ class update_sever:
                 result = self.parent.data_uploader.update_counts_only(upload_data)
                 #print("Upload result:", result)
                 if result.get('status') == 'success':
-                    print("➡️Uploaded to sever")
+                    log.info("Uploaded to server")
                 else:
-                    print(f"[ERROR] Upload failed: {result.get('message')}")
+                    log.error("Upload failed: %s", result.get('message'))
             except Exception as e:
-                print(f"[EXCEPTION] Exception during upload: {e}")
+                log.error("Exception during upload: %s", e)
         else:
-            print("[ERROR] No data_uploader available in parent")
+            log.error("No data_uploader available in parent")

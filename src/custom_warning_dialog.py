@@ -4,6 +4,9 @@ from PySide6.QtGui import QColor, QPainter, QPixmap, QIcon, QMouseEvent, QCursor
 from PySide6.QtCore import Qt, QSize, Signal, QEasingCurve, QPoint, QTimer, QPropertyAnimation
 
 from Custom_Widgets import loadJsonStyle
+from src.app_logger import get_logger
+
+log = get_logger("warning_dialog")
 
 class CustomWarningDialog(QDialog):
     """
@@ -243,11 +246,11 @@ class CustomWarningDialog(QDialog):
                 self.main_window.update_theme_settings()
             else:
                 # ✅ ป้องกันกรณีไม่มี main_window เช่นถูกเรียกจาก popup เดี่ยว
-                print("[INFO] CustomWarningDialog: No main_window or theme_settings found, using default style.")
+                log.info("CustomWarningDialog: No main_window or theme_settings found, using default style.")
 
             self.update_content_and_style()
         except Exception as e:
-            print(f"❌ Error updating theme in Dialog: {e}")
+            log.error("Error updating theme in Dialog: %s", e)
 
     def update_content_and_style(self):
         """อัปเดตเนื้อหาและสไตล์ตามประเภทของ Dialog (Success/Warning)"""
@@ -300,7 +303,7 @@ class CustomWarningDialog(QDialog):
         """สร้าง Pixmap พร้อมเปลี่ยนสี"""
         pixmap = QPixmap(icon_path)
         if pixmap.isNull():
-            print(f"⚠️ Missing icon: {icon_path}")
+            log.warning("Missing icon: %s", icon_path)
             return QPixmap()
         
         pixmap = pixmap.scaled(size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
