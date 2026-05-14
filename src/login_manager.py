@@ -31,6 +31,7 @@ from src.login_scan import MyWindow
 from src.lot_checker import lot_checker
 from src.data_upload import DataUploader
 from src.app_logger import get_logger
+from src.config_manager import config_manager
 
 log = get_logger("login_mgr")
 
@@ -71,14 +72,18 @@ class LoginManager:
 
     def login(self, retry_count=0, max_retries=3, is_after_reset=False):
         """Execute login process with Lot Number pre-check"""
-        # ✅ Prevent duplicate login attempts
         if self._is_logging_in:
             log.warning("Login process already in progress")
             return False
-            
+
         self._is_logging_in = True
-        
+
         try:
+            if config_manager.current_config.get('mock_mode', False):
+                success = self._perform_mock_auto_login()
+                self._is_logging_in = False
+                return success
+
             # ========================================================
             # STEP 1: Pre-check Lot Number
             # ========================================================
@@ -135,10 +140,35 @@ class LoginManager:
             self._is_logging_in = False
             return False
 
+    def _perform_mock_auto_login(self) -> bool:
+        """Auto-login with mock data — no dialogs, no hardware needed.
+
+        Uses mock_default_lot from config (default: TEST001).
+        """
+        default_lot = config_manager.current_config.get('mock_default_lot', 'TEST001')
+        log.info("MOCK auto-login: lot=%s", default_lot)
+
+        result = lot_checker.check_lot(default_lot)
+        if result.get('status') != 'VALID':
+            log.error("Mock auto-login failed: %s", result.get('message'))
+            return False
+
+        lot_data = result['data']
+
+        # Resolve operator name from mock tbl_training
+        operator_id = lot_data.get('operator_id', 'EMP001')
+        _, operator_data = self.data_uploader.check_user_permission(operator_id)
+        lot_data['_operator_data'] = operator_data or {}
+        lot_data['is_fixture_valid'] = True
+
+        self._load_lot_data_for_login(lot_data, result.get('parsed_input', {}))
+        self._upload_to_server(lot_data)
+        return True
+
     def _perform_lot_pre_check(self) -> str:
         """
         Perform Lot Number pre-check before manual login.
-        
+
         Returns:
             'DIRECT_LOGIN': Lot valid, data loaded - skip manual login
             'MANUAL_LOGIN': Need to proceed with manual scan login

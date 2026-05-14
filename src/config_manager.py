@@ -72,6 +72,7 @@ class ConfigManager:
         """Load default configuration"""
         return {
             "mock_mode": False,
+            "mock_default_lot": "TEST001",
             "plc": {
                 "connection_mode": "serial",
                 "port": "COM4",
