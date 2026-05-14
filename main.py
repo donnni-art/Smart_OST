@@ -60,7 +60,6 @@ from src.data_upload import DataUploader
 from src.production_calculator import ProductionCalculator
 from src.system_manager import SystemManager
 from src.Functions import GuiFunctions
-from src.config_dialog import ConfigDialog
 from src.flow_monitor import FlowMonitorDialog
 
 log = get_logger("main")
