@@ -2,6 +2,24 @@
 
 ---
 
+## [2026-05-14] — feat: mock_mode auto-login (ไม่ต้องต่ออุปกรณ์)
+
+### ไฟล์ที่แก้ไข
+| ไฟล์ | การเปลี่ยนแปลง |
+|------|----------------|
+| `src/login_manager.py` | เพิ่ม `_perform_mock_auto_login()` + ตรวจ mock_mode ต้น `login()` |
+| `src/config_manager.py` | เพิ่ม default key `"mock_default_lot": "TEST001"` |
+| `config.json` | เพิ่ม `"mock_default_lot": "TEST001"` |
+
+### พฤติกรรม
+- **Before**: mock_mode=true → ยังต้องพิมพ์ Lot Number ใน dialog ทุกครั้งที่เปิดแอป
+- **After**: mock_mode=true → เข้า Dashboard ทันที ไม่มี dialog ใดๆ
+  - ใช้ lot จาก `mock_default_lot` (default: TEST001)
+  - ดึง operator data จาก mock tbl_training อัตโนมัติ
+  - เปลี่ยน lot ได้ด้วย `"mock_default_lot": "TEST002"` ใน config.json
+
+---
+
 ## [2026-05-14] — Refactor: replace print() with log() across all modules
 
 ### ไฟล์ที่แก้ไข (13 ไฟล์)
