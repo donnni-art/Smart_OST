@@ -2,6 +2,21 @@
 
 ---
 
+## [2026-05-14] — Refactor: replace print() with log() across all modules
+
+### ไฟล์ที่แก้ไข (13 ไฟล์)
+`Functions.py`, `custom_warning_dialog.py`, `data_upload.py`, `heat_map_defect.py`,
+`login_manager.py`, `login_pm.py`, `login_scan.py`, `logout_window.py`,
+`lot_checker.py`, `mock_database.py`, `pm_window.py`, `production_calculator.py`,
+`update_data_manager.py`
+
+### การเปลี่ยนแปลง
+- เพิ่ม `from src.app_logger import get_logger` และ `log = get_logger(...)` ในทุกไฟล์
+- แทน `print()` ทั้งหมดด้วย `log.info/warning/error/debug(...)` (% formatting)
+- คง `print()` ไว้ใน `if __name__ == '__main__'` blocks และ `print_mock_summary()` (intentional CLI output)
+
+---
+
 ## [2026-05-12] — Code Quality Fixes (print→log, lazy import, unused vars)
 
 ### ไฟล์ที่แก้ไข
